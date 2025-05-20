@@ -1,0 +1,68 @@
+[versions]
+shadow = "8.3.3"
+kotlin = "2.0.20"
+kotlin-coroutines = "1.9.0"
+grpc = "1.61.0"
+grpc-kotlin = "1.4.1"
+protobuf = "3.25.2"
+mcsports-proto = "v2025.03.19.102614"
+log4j = "2.20.0"
+configurate = "4.2.0"
+controller-api = "0.0.30-SNAPSHOT.f7cbeda"
+player-api = "0.0.1-SNAPSHOT.d490b2f"
+droplet-api = "0.0.1-dev.16b322c"
+plugin-api = "0.0.1-dev.1738295670168-f53f4db"
+clikt = "5.0.1"
+velocity = "3.4.0-SNAPSHOT"
+minimessage = "4.20.0"
+
+[libraries]
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
+
+protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin", version.ref = "protobuf" }
+
+grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
+grpc-kotlin-stub = { module = "io.grpc:grpc-kotlin-stub", version.ref = "grpc-kotlin" }
+grpc-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
+grpc-netty-shaded = { module = "io.grpc:grpc-netty-shaded", version.ref = "grpc" }
+
+mcsports-proto-kotlin = { module = "club.mcsports.generated:proto-kotlin", version.ref = "mcsports-proto" }
+mcsports-proto-java = { module = "club.mcsports.generated:proto-java", version.ref = "mcsports-proto" }
+
+configurate = { module = "org.spongepowered:configurate-yaml", version.ref = "configurate" }
+configurate-kotlin = { module = "org.spongepowered:configurate-extra-kotlin", version.ref = "configurate" }
+
+droplet-api = { module = "app.simplecloud.droplet.api:droplet-api", version.ref = "droplet-api" }
+controller-api = { module = "app.simplecloud.controller:controller-api", version.ref = "controller-api" }
+player-api = { module = "app.simplecloud.droplet.player:player-api", version.ref = "player-api" }
+plugin-api = { module = "app.simplecloud.plugin:plugin-shared", version.ref = "plugin-api" }
+velocity = { module = "com.velocitypowered:velocity-api", version.ref = "velocity" }
+clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
+
+log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
+log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
+log4j-slf4j = { module = "org.apache.logging.log4j:log4j-slf4j-impl", version.ref = "log4j" }
+
+minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "minimessage" }
+
+[bundles]
+log4j = [
+    "log4j-core",
+    "log4j-api",
+    "log4j-slf4j"
+]
+grpc = [
+    "protobuf-kotlin",
+    "grpc-stub",
+    "grpc-kotlin-stub",
+    "grpc-protobuf",
+    "grpc-netty-shaded",
+]
+configurate = ["configurate", "configurate-kotlin"]
+simplecloud = ["controller-api", "droplet-api", "player-api", "plugin-api"]
+
+[plugins]
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
