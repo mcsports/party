@@ -12,7 +12,6 @@ import java.util.UUID
 class PartyService(
     private val playerApi: PlayerApi.Coroutine
 ) {
-
     val parties = mutableMapOf<UUID, Party>()
     val informationHolders = mutableMapOf<UUID, PartyInformationHolder>()
 
@@ -24,9 +23,10 @@ class PartyService(
         val informationHolder = informationHolder(creator)
 
         val informationParty = informationHolder.partyId
-        if(informationParty != null && parties[informationParty] != null) {
+
+        parties[informationParty]?.let {
             //TODO: Send message that the player is already in a party
-            return parties[informationParty]!!
+            return it
         }
 
         val partyId = generatePartyId()
@@ -59,7 +59,14 @@ class PartyService(
             return
         }
 
-        if(informationHolder(member).partyId != null) {
+        val informationHolder = informationHolder(member)
+
+        if(informationHolder.partyId == party.id) {
+            //TODO: Send message that he's already in the party
+            return
+        }
+
+        if(informationHolder.partyId != null) {
             //TODO: has to be in no party to join another: send message
             return
         }
@@ -70,22 +77,40 @@ class PartyService(
     }
 
     fun removePartyMember(
-        party: Party,
         member: UUID,
         executor: UUID
     ) {
-        val members = party.members
-        val partyMember = members[member]
+        val partyId = informationHolder(executor).partyId ?: run {
+            //TODO: Send player message that he isnt in a party
+            return
+        }
+        val party = parties[partyId] ?: run {
+            //TODO: Send player message that his party couldn't be fetched (may be deleted but not synced well enough? idk man)
+            return
+        }
 
-        if(partyMember == executor) {
+        if(party.members[executor]?.role == PartyRole.MEMBER) {
+            //TODO: Send player message that he isn't permitted to remove players
+            return
+        }
+
+        val members = party.members
+        val informationHolder = informationHolder(member)
+
+        if(informationHolder.partyId != party.id) {
+            //TODO: Send player message that the target isn't in his party
+            return
+        }
+
+        if(member == executor) {
             members.remove(member)
-            informationHolder(member).partyId = null
+            informationHolder.partyId = null
 
             //TODO: Send message to the player because HE LEFT!!
             return
         }
 
-        if((members[executor]?.role?.strength ?: 0) < (partyMember?.role?.strength ?: 0)) {
+        if((members[executor]?.role?.strength ?: 0) < (members[member]?.role?.strength ?: 0)) {
             //TODO: Send message to executor because he's not "strong" enough to remove the target
 
             return
@@ -93,8 +118,67 @@ class PartyService(
 
         party.members.remove(member)
         informationHolder(member).partyId = null
-        //TODO: Send executor successfull message
+        //TODO: Send executor successful message
         //TODO: Send member got kicked message
+
+    }
+
+    fun invitePartyMember(
+        member: UUID,
+        executor: UUID,
+    ) {
+        val partyId = informationHolder(executor).partyId ?: run {
+            //TODO: Send player message that he isnt in a party
+            return
+        }
+        val party = parties[partyId] ?: run {
+            //TODO: Send player message that his party couldn't be fetched (may be deleted but not synced well enough? idk man)
+            return
+        }
+
+        if(party.members[executor]?.role == PartyRole.MEMBER) {
+            //TODO: Send player message that he isn't permitted to invite players
+            //We'll add player invite requests later eventually
+            return
+        }
+
+        if(member == executor) {
+            //TODO: Send message that he cannot invite himself
+            return
+        }
+
+        if(party.pendingInvites.containsKey(member)) {
+            //TODO: Send message that he is already invited to executor
+            return
+        }
+
+        //TODO: Send success (executor) and invite (member) message
+        //TODO: Let the invite expire after 5m or something like that
+    }
+
+    fun deleteParty(
+        executor: UUID
+    ) {
+        val partyId = informationHolder(executor).partyId ?: run {
+            //TODO: Send player message that he isnt in a party
+            return
+        }
+        val party = parties[partyId] ?: run {
+            //TODO: Send player message that his party couldn't be fetched (may be deleted but not synced well enough? idk man)
+            return
+        }
+
+        if(party.members[executor]?.role != PartyRole.OWNER) {
+            //TODO: Send player message that he isn't permitted to invite players
+            return
+        }
+
+        party.members.keys.forEach { uuid ->
+            informationHolder(uuid).partyId = null
+            //TODO: Send message that the party has been deleted
+        }
+
+        party.members.clear()
 
     }
 
