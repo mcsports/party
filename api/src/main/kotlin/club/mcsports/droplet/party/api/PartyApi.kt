@@ -15,7 +15,11 @@ interface PartyApi {
 
         suspend fun deleteParty(id: UUID)
 
-        suspend fun createParty(id: UUID, creator: UUID, initialInvites: MutableSet<UUID>, settings: PartySettings): Party
+        suspend fun createParty(
+            creator: UUID,
+            initialInvites: MutableSet<UUID>,
+            settings: PartySettings
+        ): Party
 
     }
 
@@ -25,7 +29,11 @@ interface PartyApi {
 
         fun deleteParty(id: UUID): CompletableFuture<Void>
 
-        fun createParty(id: UUID, creator: UUID, initialInvites: MutableSet<UUID>, settings: PartySettings): CompletableFuture<Party>
+        fun createParty(
+            creator: UUID,
+            initialInvites: MutableSet<UUID>,
+            settings: PartySettings
+        ): CompletableFuture<Party>
 
     }
 
