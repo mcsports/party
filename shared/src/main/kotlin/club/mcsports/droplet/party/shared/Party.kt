@@ -5,7 +5,8 @@ import java.util.*
 
 data class Party(
     val id: UUID,
-    val members: MutableMap<UUID, PartyMember> = mutableMapOf(),
-    val pendingInvites: MutableSet<UUID> = mutableSetOf(),
-    val settings: PartySettings = PartySettings()
+    val owner: UUID,
+    val members: MutableMap<UUID, PartyMember>,
+    val pendingInvites: MutableMap<UUID, PartyInvite>,
+    val settings: PartySettings
 )
