@@ -182,6 +182,8 @@ class PartyService(
 
     }
 
+    //TODO: promote and demote party members
+
     fun generatePartyId(): UUID {
         if (parties.isEmpty()) return UUID.randomUUID()
         else {
