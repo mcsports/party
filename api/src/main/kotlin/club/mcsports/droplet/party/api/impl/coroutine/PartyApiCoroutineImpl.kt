@@ -1,12 +1,11 @@
 package club.mcsports.droplet.party.api.impl.coroutine
 
 import club.mcsports.droplet.party.api.PartyApi
-import club.mcsports.droplet.party.shared.Party
-import club.mcsports.droplet.party.shared.PartySettings
+import com.mcsports.party.v1.Party
+import com.mcsports.party.v1.PartySettings
 import java.util.*
 
 class PartyApiCoroutineImpl : PartyApi.Coroutine {
-
     override suspend fun getParty(id: UUID): Party {
         TODO("Not yet implemented")
     }
@@ -16,12 +15,32 @@ class PartyApiCoroutineImpl : PartyApi.Coroutine {
     }
 
     override suspend fun createParty(
-        id: UUID,
         creator: UUID,
         initialInvites: MutableSet<UUID>,
-        settings: PartySettings,
+        settings: PartySettings
     ): Party {
         TODO("Not yet implemented")
     }
+
+    override fun invitePartyMember(memberId: UUID, executor: UUID) {
+        TODO("Not yet implemented")
+    }
+
+    override fun joinPartyMember(memberId: UUID, partyId: UUID) {
+        TODO("Not yet implemented")
+    }
+
+    override fun kickPartyMember(memberId: UUID, partyId: UUID, executor: UUID) {
+        TODO("Not yet implemented")
+    }
+
+    override fun promotePartyMember(memberId: UUID, partyId: UUID, executor: UUID) {
+        TODO("Not yet implemented")
+    }
+
+    override fun demotePartyMember(memberId: UUID, partyId: UUID, executor: UUID) {
+        TODO("Not yet implemented")
+    }
+
 
 }

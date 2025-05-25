@@ -2,9 +2,8 @@ package club.mcsports.droplet.party.api
 
 import club.mcsports.droplet.party.api.impl.coroutine.PartyApiCoroutineImpl
 import club.mcsports.droplet.party.api.impl.future.PartyApiFutureImpl
-import club.mcsports.droplet.party.shared.Party
-import club.mcsports.droplet.party.shared.PartySettings
-import io.grpc.Status
+import com.mcsports.party.v1.Party
+import com.mcsports.party.v1.PartySettings
 import java.util.*
 import java.util.concurrent.CompletableFuture
 

@@ -1,8 +1,8 @@
 package club.mcsports.droplet.party.api.impl.future
 
 import club.mcsports.droplet.party.api.PartyApi
-import club.mcsports.droplet.party.shared.Party
-import club.mcsports.droplet.party.shared.PartySettings
+import com.mcsports.party.v1.Party
+import com.mcsports.party.v1.PartySettings
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
@@ -12,16 +12,35 @@ class PartyApiFutureImpl : PartyApi.Future {
         TODO("Not yet implemented")
     }
 
-    override fun deleteParty(id: UUID): CompletableFuture<Void> {
+    override fun deleteParty(partyId: UUID, executor: UUID) {
         TODO("Not yet implemented")
     }
 
     override fun createParty(
-        id: UUID,
         creator: UUID,
         initialInvites: MutableSet<UUID>,
-        settings: PartySettings,
+        settings: PartySettings
     ): CompletableFuture<Party> {
+        TODO("Not yet implemented")
+    }
+
+    override fun invitePartyMember(memberId: UUID, executor: UUID) {
+        TODO("Not yet implemented")
+    }
+
+    override fun joinPartyMember(memberId: UUID, partyId: UUID) {
+        TODO("Not yet implemented")
+    }
+
+    override fun kickPartyMember(memberId: UUID, partyId: UUID, executor: UUID) {
+        TODO("Not yet implemented")
+    }
+
+    override fun promotePartyMember(memberId: UUID, partyId: UUID, executor: UUID) {
+        TODO("Not yet implemented")
+    }
+
+    override fun demotePartyMember(memberId: UUID, partyId: UUID, executor: UUID) {
         TODO("Not yet implemented")
     }
 
