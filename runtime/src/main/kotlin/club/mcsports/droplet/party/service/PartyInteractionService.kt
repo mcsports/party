@@ -200,4 +200,20 @@ class PartyInteractionService(
 
         return party
     }
+
+    private suspend fun Party.retrieveMember(memberId: UUID): PartyMember {
+        val partyMember = membersList.firstOrNull { it.id == memberId.toString() } ?: run {
+            try {
+                val player = playerApi.getOnlinePlayer(memberId)
+                player.sendMessage(miniMessage("<red>Failed to fetch your current party. Please call an administrator about this."))
+            } catch (exception: StatusException) {
+                exception.printStackTrace()
+            }
+
+            throw Status.DATA_LOSS.withDescription("Failed to retrieve party: User $memberId isn't part of party $id anymore")
+                .asRuntimeException()
+        }
+
+        return partyMember
+    }
 }
