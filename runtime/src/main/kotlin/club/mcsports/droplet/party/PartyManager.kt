@@ -5,6 +5,7 @@ import club.mcsports.droplet.party.player.PartyInformationHolder
 import com.google.protobuf.timestamp
 import com.mcsports.party.v1.Party
 import com.mcsports.party.v1.PartyRole
+import com.mcsports.party.v1.partyInvite
 import com.mcsports.party.v1.partyMember
 import java.time.Instant
 import java.util.UUID
@@ -12,6 +13,8 @@ import java.util.UUID
 class PartyManager {
     val parties = mutableMapOf<UUID, Party>()
     val informationHolders = mutableMapOf<UUID, PartyInformationHolder>()
+
+    val inviteHolders = mutableMapOf<UUID, MutableMap<String, UUID>>()
 
     fun assignMemberToParty(member: UUID, role: PartyRole, party: Party) {
         party.membersList.add(partyMember {
@@ -36,6 +39,15 @@ class PartyManager {
         informationHolder(member).partyId = null
     }
 
+    fun inviteMemberToParty(member: UUID, invitorName: String, invitorId: UUID, party: Party) {
+        val inviteHolder = inviteHolders.getOrPut(member, { mutableMapOf() })
+        inviteHolder.put(invitorName, party.id.asUuid())
+
+        party.invitesList.add(partyInvite {
+            this.invitorId = invitorId.toString()
+            this.id = member.toString()
+        })
+    }
 
     fun generatePartyId(): UUID {
         if (parties.isEmpty()) return UUID.randomUUID()
