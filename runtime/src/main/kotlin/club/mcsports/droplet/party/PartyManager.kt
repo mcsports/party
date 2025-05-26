@@ -54,6 +54,13 @@ class PartyManager {
         })
     }
 
+    fun deleteMemberInvite(member: UUID, party: Party) {
+        party.invitesList.removeIf { it.id == member.toString() }
+
+        val holderInvites = informationHolder(member).invites
+        holderInvites.filter { it.value == party.id.asUuid() }.keys.forEach { key -> holderInvites.remove(key) }
+    }
+
     fun generatePartyId(): UUID {
         if (parties.isEmpty()) return UUID.randomUUID()
         else {
