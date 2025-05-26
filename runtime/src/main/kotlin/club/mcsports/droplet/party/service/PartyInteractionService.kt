@@ -7,6 +7,8 @@ import club.mcsports.droplet.party.extension.miniMessage
 import com.mcsports.party.v1.*
 import io.grpc.Status
 import io.grpc.StatusException
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.minimessage.MiniMessage
 import java.util.UUID
 
@@ -59,19 +61,7 @@ class PartyInteractionService(
         val party = retrieveParty(executor)
         val partyId = party.id.asUuid()
 
-        val partyMember = party.membersList.firstOrNull { it.id == executor.toString() } ?: run {
-
-            try {
-                val player = playerApi.getOnlinePlayer(executor)
-                player.sendMessage(miniMessage("<red>Failed to fetch your current party. Please call an administrator about this."))
-            } catch (exception: StatusException) {
-                exception.printStackTrace()
-            }
-
-            throw Status.DATA_LOSS.withDescription("Failed to delete party: User $executor isn't part of party $partyId anymore")
-                .asRuntimeException()
-        }
-
+        val partyMember = party.retrieveMember(executor)
         if (partyMember.role != PartyRole.OWNER) {
             try {
                 val player = playerApi.getOnlinePlayer(executor)
@@ -106,7 +96,8 @@ class PartyInteractionService(
         val party = retrieveParty(executor)
         val partyId = party.id
 
-        if (!party.settings.allowChatting) {
+        val partyMember = party.retrieveMember(executor)
+        if (!party.settings.allowChatting && partyMember.role != PartyRole.OWNER) {
             try {
                 val player = playerApi.getOnlinePlayer(executor)
                 player.sendMessage(miniMessage("<red>Sorry, but chatting is currently disabled in your party."))
@@ -118,21 +109,7 @@ class PartyInteractionService(
                 .asRuntimeException()
         }
 
-        val partyMember = party.membersList.firstOrNull { it.id == executor.toString() } ?: run {
-
-            try {
-                val player = playerApi.getOnlinePlayer(executor)
-                player.sendMessage(miniMessage("<red>Failed to fetch your current party. Please call an administrator about this."))
-            } catch (exception: StatusException) {
-                exception.printStackTrace()
-            }
-
-            throw Status.DATA_LOSS.withDescription("Failed to retrieve party: User $executor isn't part of party $partyId anymore")
-                .asRuntimeException()
-        }
-
         val playerName = playerApi.getOnlinePlayer(executor).getName()
-
         val senderInformationComponent = when (partyMember.role) {
             PartyRole.OWNER -> {
                 miniMessage("<color:dark_red>")
@@ -146,6 +123,12 @@ class PartyInteractionService(
                 miniMessage("<color:gray>")
             }
         }.append(miniMessage("$playerName</color>"))
+            .hoverEvent(
+                HoverEvent.hoverEvent(
+                    HoverEvent.Action.SHOW_TEXT,
+                    miniMessage("Party-Role: ${partyMember.role}")
+                )
+            )
 
         val messageComponent = MiniMessage.miniMessage().deserialize(request.message.json)
         party.membersList.map { it.id.asUuid() }.forEach { uuid ->
@@ -244,12 +227,15 @@ class PartyInteractionService(
         return invitePlayerResponse { }
     }
 
+    override suspend fun kickMember(request: KickMemberRequest): KickMemberResponse {
+        return kickMemberResponse { }
+    }
+
     /**
      * Just some empty responses for now
      */
     override suspend fun demoteMember(request: DemoteMemberRequest): DemoteMemberResponse = demoteMemberResponse { }
     override suspend fun handleInvite(request: HandleInviteRequest): HandleInviteResponse = handleInviteResponse { }
-    override suspend fun invitePlayer(request: InvitePlayerRequest): InvitePlayerResponse = invitePlayerResponse { }
     override suspend fun leaveParty(request: LeavePartyRequest): LeavePartyResponse = leavePartyResponse { }
     override suspend fun promoteMember(request: PromoteMemberRequest): PromoteMemberResponse = promoteMemberResponse { }
 
