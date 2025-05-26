@@ -4,6 +4,7 @@ import club.mcsports.droplet.party.extension.asUuid
 import club.mcsports.droplet.party.player.PartyInformationHolder
 import com.google.protobuf.timestamp
 import com.mcsports.party.v1.Party
+import com.mcsports.party.v1.PartyMember
 import com.mcsports.party.v1.PartyRole
 import com.mcsports.party.v1.partyInvite
 import com.mcsports.party.v1.partyMember
@@ -32,16 +33,19 @@ class PartyManager {
         informationHolder(member).partyId = party.id.asUuid()
     }
 
-    fun removeMemberFromParty(member: UUID, party: Party): Boolean {
+    fun removeMemberFromParty(member: UUID, party: Party): PartyMember? {
         party.membersList.removeIf { it.id == member.toString() }
         informationHolder(member).partyId = null
 
         if(party.membersList.isEmpty()) {
             parties.remove(party.id.asUuid())
-            return true
+            return null
         }
 
-        return false
+        return party.membersList.minByOrNull { loopMember ->
+            val timeJoined = loopMember.timeJoined
+            Instant.ofEpochSecond(timeJoined.seconds, timeJoined.nanos.toLong())
+        }
     }
 
     fun inviteMemberToParty(member: UUID, invitorName: String, invitorId: UUID, party: Party) {
