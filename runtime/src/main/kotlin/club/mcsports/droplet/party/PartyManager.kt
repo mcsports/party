@@ -14,8 +14,6 @@ class PartyManager {
     val parties = mutableMapOf<UUID, Party>()
     val informationHolders = mutableMapOf<UUID, PartyInformationHolder>()
 
-    val inviteHolders = mutableMapOf<UUID, MutableMap<String, UUID>>()
-
     fun assignMemberToParty(member: UUID, role: PartyRole, party: Party) {
         party.membersList.add(partyMember {
             this.id = member.toString()
@@ -40,7 +38,7 @@ class PartyManager {
     }
 
     fun inviteMemberToParty(member: UUID, invitorName: String, invitorId: UUID, party: Party) {
-        val inviteHolder = inviteHolders.getOrPut(member, { mutableMapOf() })
+        val inviteHolder = informationHolder(member).invites
         inviteHolder.put(invitorName, party.id.asUuid())
 
         party.invitesList.add(partyInvite {
@@ -63,5 +61,5 @@ class PartyManager {
 
     }
 
-    fun informationHolder(uuid: UUID) = informationHolders[uuid] ?: PartyInformationHolder(null).also { informationHolders[uuid] = it }
+    fun informationHolder(uuid: UUID) = informationHolders[uuid] ?: PartyInformationHolder(null, mutableMapOf()).also { informationHolders[uuid] = it }
 }
