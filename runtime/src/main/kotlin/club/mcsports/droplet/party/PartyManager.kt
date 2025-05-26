@@ -32,9 +32,16 @@ class PartyManager {
         informationHolder(member).partyId = party.id.asUuid()
     }
 
-    fun removeMemberFromParty(member: UUID, party: Party) {
+    fun removeMemberFromParty(member: UUID, party: Party): Boolean {
         party.membersList.removeIf { it.id == member.toString() }
         informationHolder(member).partyId = null
+
+        if(party.membersList.isEmpty()) {
+            parties.remove(party.id.asUuid())
+            return true
+        }
+
+        return false
     }
 
     fun inviteMemberToParty(member: UUID, invitorName: String, invitorId: UUID, party: Party) {
