@@ -288,12 +288,61 @@ class PartyInteractionService(
         return kickMemberResponse { }
     }
 
+    override suspend fun leaveParty(request: LeavePartyRequest): LeavePartyResponse {
+        val member = request.memberId.asUuid()
+        val party = retrieveParty(member)
+        val partyMember = party.retrieveMember(member)
+
+        val removeMemberResult = partyManager.removeMemberFromParty(member, party) ?: run {
+            try {
+                val executingPlayer = playerApi.getOnlinePlayer(member)
+                executingPlayer.sendMessage(miniMessage("<gray>By leaving your party, it automatically got deleted."))
+            } catch(exception: StatusException) {
+                exception.printStackTrace()
+            }
+
+            return leavePartyResponse { }
+        }
+
+        if(partyMember.role == PartyRole.OWNER) {
+            try {
+                val newOwner = removeMemberResult.id.asUuid()
+
+                val overwrittenParty = party.copy {
+                    this.ownerId = newOwner.toString()
+                }
+                partyManager.parties[party.id.asUuid()] = overwrittenParty
+
+                val newOwnerPlayer = playerApi.getOnlinePlayer(newOwner)
+
+                val newOwnerMember = party.retrieveMember( newOwner)
+                val overwrittenMember = newOwnerMember.copy {
+                    this.role = PartyRole.OWNER
+                }
+
+                party.membersList.remove(newOwnerMember)
+                party.membersList.add(overwrittenMember)
+                newOwnerPlayer.sendMessage(miniMessage("<gray>You were automatically promoted to party owner due to being in the party the longest."))
+            } catch(exception: StatusException) {
+                exception.printStackTrace()
+            }
+        }
+
+        try {
+            val executingPlayer = playerApi.getOnlinePlayer(member)
+            executingPlayer.sendMessage(miniMessage("<gray>You left the party."))
+        } catch(exception: StatusException) {
+            exception.printStackTrace()
+        }
+
+        return leavePartyResponse { }
+    }
+
     /**
      * Just some empty responses for now
      */
     override suspend fun demoteMember(request: DemoteMemberRequest): DemoteMemberResponse = demoteMemberResponse { }
     override suspend fun handleInvite(request: HandleInviteRequest): HandleInviteResponse = handleInviteResponse { }
-    override suspend fun leaveParty(request: LeavePartyRequest): LeavePartyResponse = leavePartyResponse { }
     override suspend fun promoteMember(request: PromoteMemberRequest): PromoteMemberResponse = promoteMemberResponse { }
 
     private suspend fun retrieveParty(memberId: UUID): Party {
