@@ -2,62 +2,47 @@ package club.mcsports.droplet.party.api
 
 import club.mcsports.droplet.party.api.impl.coroutine.PartyApiCoroutineImpl
 import club.mcsports.droplet.party.api.impl.future.PartyApiFutureImpl
-import com.mcsports.party.v1.Party
-import com.mcsports.party.v1.PartySettings
-import java.util.*
-import java.util.concurrent.CompletableFuture
 
 interface PartyApi {
 
     interface Coroutine {
-
-        suspend fun getParty(id: UUID): Party
-
-        suspend fun deleteParty(id: UUID)
-
-        suspend fun createParty(
-            creator: UUID,
-            initialInvites: MutableSet<UUID>,
-            settings: PartySettings
-        ): Party
-
-        fun invitePartyMember(memberId: UUID, executor: UUID)
-        fun joinPartyMember(memberId: UUID, partyId: UUID)
-        fun kickPartyMember(memberId: UUID, partyId: UUID, executor: UUID)
-        fun promotePartyMember(memberId: UUID, partyId: UUID, executor: UUID)
-        fun demotePartyMember(memberId: UUID, partyId: UUID, executor: UUID)
+        fun getData(): DataApi.Coroutine
+        fun getInteraction(): InteractionApi.Coroutine
     }
 
     interface Future {
-
-        fun getParty(partyId: UUID): CompletableFuture<Party>
-
-        fun deleteParty(partyId: UUID, executor: UUID)
-
-        fun createParty(
-            creator: UUID,
-            initialInvites: MutableSet<UUID>,
-            settings: PartySettings
-        ): CompletableFuture<Party>
-
-        fun invitePartyMember(memberId: UUID, executor: UUID)
-        fun joinPartyMember(memberId: UUID, partyId: UUID)
-        fun kickPartyMember(memberId: UUID, partyId: UUID, executor: UUID)
-        fun promotePartyMember(memberId: UUID, partyId: UUID, executor: UUID)
-        fun demotePartyMember(memberId: UUID, partyId: UUID, executor: UUID)
-
+        fun getData(): DataApi.Future
+        fun getInteraction(): InteractionApi.Future
     }
 
     companion object {
 
         @JvmStatic
+        fun createFutureApi(authSecret: String, host: String, port: Int): Future {
+            return PartyApiFutureImpl(authSecret, host, port)
+        }
+
+        @JvmStatic
         fun createFutureApi(): Future {
-            return PartyApiFutureImpl()
+            return createFutureApi(
+                System.getenv("CONTROLLER_SECRET"),
+                System.getenv("PARTY_HOST") ?: "0.0.0.0",
+                System.getenv("PARTY_PORT")?.toInt() ?: 5831
+            )
+        }
+
+        @JvmStatic
+        fun createCoroutineApi(authSecret: String, host: String, port: Int): Coroutine {
+            return PartyApiCoroutineImpl(authSecret, host, port)
         }
 
         @JvmStatic
         fun createCoroutineApi(): Coroutine {
-            return PartyApiCoroutineImpl()
+            return createCoroutineApi(
+                System.getenv("CONTROLLER_SECRET"),
+                System.getenv("PARTY_HOST") ?: "0.0.0.0",
+                System.getenv("PARTY_PORT")?.toInt() ?: 5831
+            )
         }
 
     }

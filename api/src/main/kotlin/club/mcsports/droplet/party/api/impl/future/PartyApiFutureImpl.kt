@@ -1,47 +1,24 @@
 package club.mcsports.droplet.party.api.impl.future
 
+import app.simplecloud.droplet.api.auth.AuthCallCredentials
+import club.mcsports.droplet.party.api.DataApi
+import club.mcsports.droplet.party.api.InteractionApi
 import club.mcsports.droplet.party.api.PartyApi
-import com.mcsports.party.v1.Party
-import com.mcsports.party.v1.PartySettings
-import java.util.*
-import java.util.concurrent.CompletableFuture
+import io.grpc.ManagedChannelBuilder
 
-class PartyApiFutureImpl : PartyApi.Future {
+class PartyApiFutureImpl(
+    authSecret: String,
+    host: String,
+    port: Int,
+) : PartyApi.Future {
+    private val channel = ManagedChannelBuilder.forAddress(host, port)
+        .usePlaintext()
+        .build()
+    private val credentials = AuthCallCredentials(authSecret)
+    private val dataApi = PartyDataApiFutureImpl(credentials, channel)
+    private val interactionApi = PartyInteractionApiFutureImpl(credentials, channel)
 
-    override fun getParty(id: UUID): CompletableFuture<Party> {
-        TODO("Not yet implemented")
-    }
-
-    override fun deleteParty(partyId: UUID, executor: UUID) {
-        TODO("Not yet implemented")
-    }
-
-    override fun createParty(
-        creator: UUID,
-        initialInvites: MutableSet<UUID>,
-        settings: PartySettings
-    ): CompletableFuture<Party> {
-        TODO("Not yet implemented")
-    }
-
-    override fun invitePartyMember(memberId: UUID, executor: UUID) {
-        TODO("Not yet implemented")
-    }
-
-    override fun joinPartyMember(memberId: UUID, partyId: UUID) {
-        TODO("Not yet implemented")
-    }
-
-    override fun kickPartyMember(memberId: UUID, partyId: UUID, executor: UUID) {
-        TODO("Not yet implemented")
-    }
-
-    override fun promotePartyMember(memberId: UUID, partyId: UUID, executor: UUID) {
-        TODO("Not yet implemented")
-    }
-
-    override fun demotePartyMember(memberId: UUID, partyId: UUID, executor: UUID) {
-        TODO("Not yet implemented")
-    }
+    override fun getData(): DataApi.Future = dataApi
+    override fun getInteraction(): InteractionApi.Future = interactionApi
 
 }
