@@ -6,6 +6,7 @@ import com.google.protobuf.timestamp
 import com.mcsports.party.v1.Party
 import com.mcsports.party.v1.PartyMember
 import com.mcsports.party.v1.PartyRole
+import com.mcsports.party.v1.copy
 import com.mcsports.party.v1.partyInvite
 import com.mcsports.party.v1.partyMember
 import java.time.Instant
@@ -42,7 +43,7 @@ class PartyManager {
             return null
         }
 
-        return party.membersList.minByOrNull { loopMember ->
+        return party.membersList.filter { it.role != PartyRole.OWNER }.minByOrNull { loopMember ->
             val timeJoined = loopMember.timeJoined
             Instant.ofEpochSecond(timeJoined.seconds, timeJoined.nanos.toLong())
         }
@@ -63,6 +64,35 @@ class PartyManager {
 
         val holderInvites = informationHolder(member).invites
         holderInvites.filter { it.value == party.id.asUuid() }.keys.forEach { key -> holderInvites.remove(key) }
+    }
+
+    fun transferOwnership(member: UUID, leave: Boolean, party: Party) {
+        val oldOwner = party.membersList.first { it.id == party.ownerId }
+
+        if(!leave) {
+            val overwrittenOldOwner = oldOwner.copy {
+                this.role = PartyRole.MOD
+            }
+            party.membersList.remove(oldOwner)
+            party.membersList.add(overwrittenOldOwner)
+        } else party.membersList.remove(oldOwner)
+
+        val newOwner = party.membersList.first { it.id == member.toString() }
+        val overwrittenNewOwner = newOwner.copy {
+            this.role = PartyRole.OWNER
+        }
+
+        party.membersList.remove(newOwner)
+        party.membersList.add(overwrittenNewOwner)
+    }
+
+    fun setMemberRole(member: UUID, role: PartyRole, party: Party) {
+        val partyMember = party.membersList.first { it.id == member.toString() }.copy {
+            this.role = role
+        }
+
+        party.membersList.removeIf { it.id == member.toString() }
+        party.membersList.add(partyMember)
     }
 
     fun generatePartyId(): UUID {
