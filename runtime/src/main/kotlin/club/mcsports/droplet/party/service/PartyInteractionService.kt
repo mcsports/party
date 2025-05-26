@@ -146,7 +146,6 @@ class PartyInteractionService(
         return chatResponse { }
     }
 
-
     override suspend fun invitePlayer(request: InvitePlayerRequest): InvitePlayerResponse {
         val executor = request.executorId.asUuid()
         val party = retrieveParty(executor)
@@ -228,6 +227,64 @@ class PartyInteractionService(
     }
 
     override suspend fun kickMember(request: KickMemberRequest): KickMemberResponse {
+        val executor = request.executorId.asUuid()
+        val party = retrieveParty(executor)
+        val partyId = party.id
+        val executingPartyMember = party.retrieveMember(executor)
+
+        val member = request.memberId.asUuid()
+        if(executor == member) {
+            leaveParty(leavePartyRequest {
+                this.memberId = memberId
+            })
+            return kickMemberResponse {  }
+        }
+
+        if(executingPartyMember.role == PartyRole.MEMBER) {
+            try {
+                val executingPlayer = playerApi.getOnlinePlayer(executor)
+                executingPlayer.sendMessage(miniMessage("<red>You don't have enough permissions to do kick members."))
+            } catch(exception: StatusException) {
+                exception.printStackTrace()
+            }
+
+            throw Status.PERMISSION_DENIED.withDescription("Failed to kick member: User $executor isn't permitted to do that").asRuntimeException()
+        }
+
+        if(party.membersList.none { it.id == member.toString() }) {
+            try {
+                val executingPlayer = playerApi.getOnlinePlayer(executor)
+                executingPlayer.sendMessage(miniMessage("<red>The given player isn't part of your party."))
+            } catch(exception: StatusException) {
+                exception.printStackTrace()
+            }
+            throw Status.NOT_FOUND.withDescription("Failed to kick member: User $member isn't part of party $partyId").asRuntimeException()
+        }
+
+        val partyMember = party.retrieveMember(member)
+
+        if(executingPartyMember.roleValue < partyMember.roleValue) {
+            try {
+                val executingPlayer = playerApi.getOnlinePlayer(executor)
+                val memberPlayer = playerApi.getOnlinePlayer(member)
+                executingPlayer.sendMessage(miniMessage("<red>You don't have enough permissions to do kick ${memberPlayer.getName()}."))
+            } catch(exception: StatusException) {
+                exception.printStackTrace()
+            }
+
+            throw Status.PERMISSION_DENIED.withDescription("Failed to kick member: User $executor isn't permitted to kick higher role member $member").asRuntimeException()
+        }
+
+        partyManager.removeMemberFromParty(member, party)
+        try {
+            val executingPlayer = playerApi.getOnlinePlayer(executor)
+            val memberPlayer = playerApi.getOnlinePlayer(member)
+            executingPlayer.sendMessage(miniMessage("<gray>You successfully removed ${memberPlayer.getName()} from the party."))
+            memberPlayer.sendMessage(miniMessage("<gray>You got kicked out of the party."))
+        } catch(exception: StatusException) {
+            exception.printStackTrace()
+        }
+
         return kickMemberResponse { }
     }
 
