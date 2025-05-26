@@ -163,6 +163,87 @@ class PartyInteractionService(
         return chatResponse { }
     }
 
+
+    override suspend fun invitePlayer(request: InvitePlayerRequest): InvitePlayerResponse {
+        val executor = request.executorId.asUuid()
+        val party = retrieveParty(executor)
+        val executingPartyMember = party.retrieveMember(executor)
+        val partyId = party.id
+
+        if (executingPartyMember.role == PartyRole.MEMBER) {
+            try {
+                val player = playerApi.getOnlinePlayer(executor)
+                player.sendMessage(miniMessage("<red>You don't have enough permissions to invite members to the party."))
+            } catch (exception: StatusException) {
+                exception.printStackTrace()
+            }
+
+            throw Status.PERMISSION_DENIED.withDescription("Failed to invite member: User $executor isn't permitted to do that").asRuntimeException()
+        }
+
+        if(!party.settings.allowInvites && executingPartyMember.role != PartyRole.OWNER) {
+            try {
+                val player = playerApi.getOnlinePlayer(executor)
+                player.sendMessage(miniMessage("<red>Sorry, but invites are currently disabled in your party."))
+            } catch (exception: StatusException) {
+                exception.printStackTrace()
+            }
+
+            throw Status.UNAVAILABLE.withDescription("Failed to invite member: Invites are disabled in party $partyId").asRuntimeException()
+        }
+
+        val invitedMemberId = request.memberId
+        if(invitedMemberId == executor.toString()) {
+            try {
+                val player = playerApi.getOnlinePlayer(executor)
+                player.sendMessage(miniMessage("<red>You cannot invite yourself to the party."))
+            } catch (exception: StatusException) {
+                exception.printStackTrace()
+            }
+
+            throw Status.INVALID_ARGUMENT.withDescription("Failed to invite member: User $executor cannot invite himself").asRuntimeException()
+        }
+
+        if(!playerApi.isOnline(invitedMemberId.asUuid())) {
+            try {
+                val player = playerApi.getOnlinePlayer(executor)
+                player.sendMessage(miniMessage("<red>The player you're trying to invite is offline."))
+            } catch (exception: StatusException) {
+                exception.printStackTrace()
+            }
+
+            throw Status.NOT_FOUND.withDescription("Failed to invite member: User $invitedMemberId is offline").asRuntimeException()
+        }
+
+        if(party.invitesList.any { invite -> invite.id ==  invitedMemberId}) {
+            try {
+                val player = playerApi.getOnlinePlayer(executor)
+                player.sendMessage(miniMessage("<red>The player you're trying to invite already has a pending invite for your party."))
+            } catch (exception: StatusException) {
+                exception.printStackTrace()
+            }
+
+            throw Status.ALREADY_EXISTS.withDescription("Failed to invite member: User $invitedMemberId already has a pending invite for party $partyId").asRuntimeException()
+        }
+
+        try {
+            val executorPlayer = playerApi.getOnlinePlayer(executor)
+            val executorName = executorPlayer.getName()
+            partyManager.inviteMemberToParty(invitedMemberId.asUuid(), executorPlayer.getName(), executor, party)
+
+            val invitedPlayer = playerApi.getOnlinePlayer(invitedMemberId.asUuid())
+            val partyOwnerName = playerApi.getOnlinePlayer(party.ownerId.asUuid()).getName()
+
+            invitedPlayer.sendMessage(miniMessage("<gray>You got invited to $partyOwnerName's party!").append(Component.newline()).append(
+                miniMessage("<green><hover:show_text:'Click to accept the invite'><click:run_command:'/party accept $executorName'>Accept</click></hover> <dark_gray>| <red><hover:show_text:'Click here to deny the invite'><click:run_command:'/party deny $executorName'>Deny</click></hover>")
+            ))
+        } catch (exception: StatusException) {
+            exception.printStackTrace()
+        }
+
+        return invitePlayerResponse { }
+    }
+
     /**
      * Just some empty responses for now
      */
