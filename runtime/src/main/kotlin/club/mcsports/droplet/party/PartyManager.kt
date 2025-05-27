@@ -1,6 +1,7 @@
 package club.mcsports.droplet.party
 
 import club.mcsports.droplet.party.extension.asUuid
+import club.mcsports.droplet.party.extension.fetchPlayer
 import club.mcsports.droplet.party.player.PartyInformationHolder
 import com.google.protobuf.timestamp
 import com.mcsports.party.v1.Party
@@ -14,11 +15,11 @@ import java.util.UUID
 
 class PartyManager {
     val parties = mutableMapOf<UUID, Party>()
-    val informationHolders = mutableMapOf<UUID, PartyInformationHolder>()
+    val informationHolders = mutableMapOf<String, PartyInformationHolder>()
 
-    fun assignMemberToParty(member: UUID, role: PartyRole, party: Party) {
+    fun assignMemberToParty(memberName: String, role: PartyRole, party: Party) {
         party.membersList.add(partyMember {
-            this.id = member.toString()
+            this.name = memberName
             this.role = role
 
             val now = Instant.now()
@@ -30,13 +31,13 @@ class PartyManager {
             this.timeJoined = timeStampNow
         })
 
-        party.invitesList.removeIf { it.id == member.toString() }
-        informationHolder(member).partyId = party.id.asUuid()
+        party.invitesList.removeIf { it.invitedName == memberName }
+        informationHolder(memberName).partyId = party.id.asUuid()
     }
 
-    fun removeMemberFromParty(member: UUID, party: Party): PartyMember? {
-        party.membersList.removeIf { it.id == member.toString() }
-        informationHolder(member).partyId = null
+    fun removeMemberFromParty(memberName: String, party: Party): PartyMember? {
+        party.membersList.removeIf { it.name == memberName }
+        informationHolder(memberName).partyId = null
 
         if(party.membersList.isEmpty()) {
             parties.remove(party.id.asUuid())
@@ -49,25 +50,25 @@ class PartyManager {
         }
     }
 
-    fun inviteMemberToParty(member: UUID, invitorName: String, invitorId: UUID, party: Party) {
-        val inviteHolder = informationHolder(member).invites
+    fun inviteMemberToParty(memberName: String, invitorName: String, party: Party) {
+        val inviteHolder = informationHolder(memberName).invites
         inviteHolder.put(invitorName, party.id.asUuid())
 
         party.invitesList.add(partyInvite {
-            this.invitorId = invitorId.toString()
-            this.id = member.toString()
+            this.invitorName = invitorName
+            this.invitedName = memberName
         })
     }
 
-    fun deleteMemberInvite(member: UUID, party: Party) {
-        party.invitesList.removeIf { it.id == member.toString() }
+    fun deleteMemberInvite(memberName: String, party: Party) {
+        party.invitesList.removeIf { it.invitedName == memberName }
 
-        val holderInvites = informationHolder(member).invites
+        val holderInvites = informationHolder(memberName).invites
         holderInvites.filter { it.value == party.id.asUuid() }.keys.forEach { key -> holderInvites.remove(key) }
     }
 
-    fun transferOwnership(member: UUID, leave: Boolean, party: Party) {
-        val oldOwner = party.membersList.first { it.id == party.ownerId }
+    fun transferOwnership(memberName: String, leave: Boolean, party: Party) {
+        val oldOwner = party.membersList.first { it.role == PartyRole.OWNER} //Predicate before was 'it.id == party.ownerId' wtf
 
         if(!leave) {
             val overwrittenOldOwner = oldOwner.copy {
@@ -77,7 +78,7 @@ class PartyManager {
             party.membersList.add(overwrittenOldOwner)
         } else party.membersList.remove(oldOwner)
 
-        val newOwner = party.membersList.first { it.id == member.toString() }
+        val newOwner = party.membersList.first { it.name == memberName }
         val overwrittenNewOwner = newOwner.copy {
             this.role = PartyRole.OWNER
         }
@@ -86,12 +87,12 @@ class PartyManager {
         party.membersList.add(overwrittenNewOwner)
     }
 
-    fun setMemberRole(member: UUID, role: PartyRole, party: Party) {
-        val partyMember = party.membersList.first { it.id == member.toString() }.copy {
+    fun setMemberRole(memberName: String, role: PartyRole, party: Party) {
+        val partyMember = party.membersList.first { it.name == memberName }.copy {
             this.role = role
         }
 
-        party.membersList.removeIf { it.id == member.toString() }
+        party.membersList.removeIf { it.name == memberName }
         party.membersList.add(partyMember)
     }
 
@@ -109,5 +110,5 @@ class PartyManager {
 
     }
 
-    fun informationHolder(uuid: UUID) = informationHolders[uuid] ?: PartyInformationHolder(null, mutableMapOf()).also { informationHolders[uuid] = it }
+    fun informationHolder(name: String) = informationHolders[name] ?: PartyInformationHolder(null, mutableMapOf()).also { informationHolders[name] = it }
 }
