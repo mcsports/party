@@ -12,35 +12,45 @@ interface InteractionApi {
         suspend fun createParty(
            creator: UUID,
            settings: PartySettings,
-           initialInvites: List<UUID>
+           initialInvites: List<String>
         ): Party
 
         suspend fun inviteMember(
-            member: UUID,
+            memberName: String,
             executor: UUID
         )
 
         suspend fun promoteMember(
-            member: UUID,
+            memberName: String,
             executor: UUID
         )
 
         suspend fun demoteMember(
-            member: UUID,
+            memberName: String,
             executor: UUID
         )
 
         suspend fun partyChat(
-            member: UUID,
+            executor: UUID,
             message: Component
         )
 
         suspend fun kickMember(
-            member: UUID,
+            memberName: String,
             executor: UUID
         )
 
-        suspend fun deleteParty(member: UUID)
+        suspend fun acceptPartyInvite(
+            invitorName: String,
+            executor: UUID
+        )
+
+        suspend fun denyPartyInvite(
+            invitorName: String,
+            executor: UUID
+        )
+
+        suspend fun deleteParty(executor: UUID)
         suspend fun memberLeaveParty(member: UUID)
     }
 
@@ -48,35 +58,45 @@ interface InteractionApi {
         fun createParty(
             creator: UUID,
             settings: PartySettings,
-            initialInvites: List<UUID>
+            initialInvites: List<String>
         ): CompletableFuture<Party>
 
         fun inviteMember(
-            member: UUID,
+            memberName: String,
             executor: UUID
         )
 
         fun promoteMember(
-            member: UUID,
+            memberName: String,
             executor: UUID
         )
 
         fun demoteMember(
-            member: UUID,
+            memberName: String,
             executor: UUID
         )
 
         fun partyChat(
-            member: UUID,
+            executor: UUID,
             message: Component
         )
 
         fun kickMember(
-            member: UUID,
+            memberName: String,
             executor: UUID
         )
 
-        fun deleteParty(member: UUID)
+        fun acceptPartyInvite(
+            invitorName: String,
+            executor: UUID
+        )
+
+        fun denyPartyInvite(
+            invitorName: String,
+            executor: UUID
+        )
+
+        fun deleteParty(executor: UUID)
         fun memberLeaveParty(member: UUID)
     }
 }

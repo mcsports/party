@@ -15,6 +15,7 @@ import com.mcsports.party.v1.Party
 import com.mcsports.party.v1.PartyInteractionGrpc
 import com.mcsports.party.v1.PartySettings
 import com.mcsports.party.v1.PromoteMemberRequest
+import com.mcsports.party.v1.handleInviteRequest
 import io.grpc.ManagedChannel
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
@@ -31,48 +32,48 @@ class PartyInteractionApiFutureImpl(
     override fun createParty(
         creator: UUID,
         settings: PartySettings,
-        initialInvites: List<UUID>
+        initialInvites: List<String>
     ): CompletableFuture<Party> {
         return api.createParty(
             CreatePartyRequest.newBuilder()
                 .setCreatorId(creator.toString())
                 .setSettings(settings)
-                .addAllInvitedIds(initialInvites.map(UUID::toString))
+                .addAllInvitedNames(initialInvites)
                 .build()
         ).toCompletable().thenApply { it.createdParty }
     }
 
-    override fun inviteMember(member: UUID, executor: UUID) {
+    override fun inviteMember(memberName: String, executor: UUID) {
         api.invitePlayer(
             InvitePlayerRequest.newBuilder()
-                .setMemberId(member.toString())
+                .setMemberName(memberName)
                 .setExecutorId(executor.toString())
                 .build()
         )
     }
 
-    override fun promoteMember(member: UUID, executor: UUID) {
+    override fun promoteMember(memberName: String, executor: UUID) {
         api.promoteMember(
             PromoteMemberRequest.newBuilder()
-                .setMemberId(member.toString())
+                .setMemberName(memberName)
                 .setExecutorId(executor.toString())
                 .build()
         )
     }
 
-    override fun demoteMember(member: UUID, executor: UUID) {
+    override fun demoteMember(memberName: String, executor: UUID) {
         api.demoteMember(
             DemoteMemberRequest.newBuilder()
-                .setMemberId(member.toString())
+                .setMemberName(memberName)
                 .setExecutorId(executor.toString())
                 .build()
         )
     }
 
-    override fun partyChat(member: UUID, message: Component) {
+    override fun partyChat(executor: UUID, message: Component) {
         api.chat(
             ChatRequest.newBuilder()
-                .setMemberId(member.toString())
+                .setExecutorId(executor.toString())
                 .setMessage(
                     AdventureComponent.newBuilder()
                         .setJson(gsonSerializer.serialize(message))
@@ -81,19 +82,27 @@ class PartyInteractionApiFutureImpl(
         )
     }
 
-    override fun kickMember(member: UUID, executor: UUID) {
+    override fun kickMember(memberName: String, executor: UUID) {
         api.kickMember(
             KickMemberRequest.newBuilder()
-                .setMemberId(member.toString())
+                .setMemberName(memberName)
                 .setExecutorId(executor.toString())
                 .build()
         )
     }
 
-    override fun deleteParty(member: UUID) {
+    override fun acceptPartyInvite(invitorName: String, executor: UUID) {
+        handleInvite(invitorName, executor, true)
+    }
+
+    override fun denyPartyInvite(invitorName: String, executor: UUID) {
+        handleInvite(invitorName, executor, false)
+    }
+
+    override fun deleteParty(executor: UUID) {
         api.deleteParty(
             DeletePartyRequest.newBuilder()
-                .setExecutorId(member.toString())
+                .setExecutorId(executor.toString())
                 .build()
         )
     }
@@ -101,8 +110,18 @@ class PartyInteractionApiFutureImpl(
     override fun memberLeaveParty(member: UUID) {
         api.leaveParty(
             LeavePartyRequest.newBuilder()
-                .setMemberId(member.toString())
+                .setExecutorId(member.toString())
                 .build()
+        )
+    }
+
+    private fun handleInvite(invitorName: String, executor: UUID, accepted: Boolean) {
+        api.handleInvite(
+            handleInviteRequest {
+                this.executorId = executor.toString()
+                this.invitorName = invitorName
+                this.accepted = accepted
+            }
         )
     }
 }

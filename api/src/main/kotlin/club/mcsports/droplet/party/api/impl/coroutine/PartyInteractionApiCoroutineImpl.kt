@@ -10,6 +10,7 @@ import com.mcsports.party.v1.chatRequest
 import com.mcsports.party.v1.createPartyRequest
 import com.mcsports.party.v1.deletePartyRequest
 import com.mcsports.party.v1.demoteMemberRequest
+import com.mcsports.party.v1.handleInviteRequest
 import com.mcsports.party.v1.invitePlayerRequest
 import com.mcsports.party.v1.kickMemberRequest
 import com.mcsports.party.v1.leavePartyRequest
@@ -29,66 +30,76 @@ class PartyInteractionApiCoroutineImpl(
     override suspend fun createParty(
         creator: UUID,
         settings: PartySettings,
-        initialInvites: List<UUID>
+        initialInvites: List<String>
     ): Party {
         return api.createParty(
             createPartyRequest {
                 this.creatorId = creator.toString()
                 this.settings = settings
-                this.invitedIds.addAll(initialInvites.map(UUID::toString))
+                this.invitedNames.addAll(initialInvites)
             }
         ).createdParty
     }
 
-    override suspend fun inviteMember(member: UUID, executor: UUID) {
+    override suspend fun inviteMember(memberName: String, executor: UUID) {
         api.invitePlayer(
             invitePlayerRequest {
-                this.memberId = member.toString()
+                this.memberName = memberName
                 this.executorId = executor.toString()
             }
         )
     }
 
-    override suspend fun promoteMember(member: UUID, executor: UUID) {
+    override suspend fun promoteMember(memberName: String, executor: UUID) {
         api.promoteMember(
             promoteMemberRequest {
-                this.memberId = member.toString()
+                this.memberName = memberName
                 this.executorId = executor.toString()
             }
         )
     }
 
-    override suspend fun demoteMember(member: UUID, executor: UUID) {
+    override suspend fun demoteMember(memberName: String, executor: UUID) {
         api.demoteMember(
             demoteMemberRequest {
-                this.memberId = member.toString()
+                this.memberName = memberName
                 this.executorId = executor.toString()
             }
         )
     }
 
-    override suspend fun partyChat(member: UUID, message: Component) {
+    override suspend fun partyChat(executor: UUID, message: Component) {
         api.chat(
             chatRequest {
-                this.memberId = member.toString()
-                this.message = adventureComponent { this.json = gsonSerializer.serialize(message) }
+                this.executorId = executor.toString()
+                this.message = adventureComponent {
+                    this.json = gsonSerializer.serialize(message)
+                }
             }
         )
     }
 
-    override suspend fun kickMember(member: UUID, executor: UUID) {
+    override suspend fun kickMember(memberName: String, executor: UUID) {
         api.kickMember(
             kickMemberRequest {
-                this.memberId = member.toString()
+                this.memberName = memberName
                 this.executorId = executor.toString()
             }
         )
     }
 
-    override suspend fun deleteParty(member: UUID) {
+    override suspend fun acceptPartyInvite(invitorName: String, executor: UUID) {
+        handleInvite(invitorName, executor, true)
+    }
+
+    override suspend fun denyPartyInvite(invitorName: String, executor: UUID) {
+        handleInvite(invitorName, executor, false)
+    }
+
+    override suspend fun deleteParty(executor: UUID) {
         api.deleteParty(
             deletePartyRequest {
-                this.executorId = member.toString()
+                this.executorId = executor.toString()
             }
         )
     }
@@ -96,9 +107,20 @@ class PartyInteractionApiCoroutineImpl(
     override suspend fun memberLeaveParty(member: UUID) {
         api.leaveParty(
             leavePartyRequest {
-                this.memberId = member.toString()
+                this.executorId = member.toString()
             }
         )
     }
+
+    private suspend fun handleInvite(invitorName: String, executor: UUID, accepted: Boolean) {
+        api.handleInvite(
+            handleInviteRequest {
+                this.executorId = executor.toString()
+                this.invitorName = invitorName
+                this.accepted = accepted
+            }
+        )
+    }
+
 
 }
