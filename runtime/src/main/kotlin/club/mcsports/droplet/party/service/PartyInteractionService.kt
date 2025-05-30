@@ -135,7 +135,7 @@ class PartyInteractionService(
         return chatResponse { }
     }
 
-    suspend fun inviteMember(request: InvitePlayerRequest): InvitePlayerResponse {
+    override suspend fun invitePlayer(request: InvitePlayerRequest): InvitePlayerResponse {
         val executor = request.executorId.fetchPlayer()
         val executorName = executor.getName()
 
@@ -403,26 +403,16 @@ class PartyInteractionService(
     }
 
     private suspend fun retrieveParty(memberName: String): Party {
+        val player = memberName.fetchPlayer()
         val partyId = partyManager.informationHolder(memberName).partyId ?: run {
-
-            try {
-                val player = playerApi.getOnlinePlayer(memberName)
-                player.sendMessage(text("<red>You aren't in a party!"))
-            } catch (exception: StatusException) {
-                exception.printStackTrace()
-            }
+            player.sendMessage(text("<red>You aren't in a party!"))
 
             throw Status.FAILED_PRECONDITION.withDescription("Failed to retrieve party: User $memberName isn't part of any party")
                 .asRuntimeException()
         }
 
         val party = partyManager.parties[partyId] ?: run {
-            try {
-                val player = playerApi.getOnlinePlayer(memberName)
-                player.sendMessage(text("<red>Failed to fetch your current party. Please call an administrator about this."))
-            } catch (exception: StatusException) {
-                exception.printStackTrace()
-            }
+            player.sendMessage(text("<red>Failed to fetch your current party. Please call an administrator about this."))
 
             throw Status.NOT_FOUND.withDescription("Failed to retrieve party: Party $partyId not found")
                 .asRuntimeException()
