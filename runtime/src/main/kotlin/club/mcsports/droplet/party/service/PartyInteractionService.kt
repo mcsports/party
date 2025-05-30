@@ -363,7 +363,7 @@ class PartyInteractionService(
 
         partyManager.setMemberRole(memberName, nextLowerRole, party)
 
-        executor.sendMessage(miniMessage("<gray>You successfully promoted $memberName to $nextLowerRole"))
+        executor.sendMessage(miniMessage("<gray>You successfully promoted $memberName to $nextLowerRole."))
         member.sendMessage(miniMessage("<gray>Your party role was updated to $nextLowerRole."))
         return demoteMemberResponse { }
     }
@@ -371,7 +371,36 @@ class PartyInteractionService(
     /**
      * TODO: Implement invite handling
      */
-    override suspend fun handleInvite(request: HandleInviteRequest): HandleInviteResponse = handleInviteResponse { }
+    override suspend fun handleInvite(request: HandleInviteRequest): HandleInviteResponse {
+        val executor = request.executorId.fetchPlayer()
+        val executorName = executor.getName()
+
+        val invitorName = request.invitorName
+
+        val invitesList = partyManager.informationHolder(executorName).invites
+        if(!invitesList.contains(invitorName)) {
+            executor.sendMessage(miniMessage("<red>You haven't been invited by $invitorName."))
+            throw Status.NOT_FOUND.withDescription("Failed to handle invite: User $executorName wasn't invited by $invitorName").asRuntimeException()
+        }
+
+        val partyId = invitesList[invitorName]
+        val party = partyManager.parties[partyId] ?: run {
+            invitesList.remove(invitorName)
+
+            executor.sendMessage(miniMessage("<red>Sorry, the corresponding party doesn't exist anymore."))
+            throw Status.NOT_FOUND.withDescription("Failed to handle invite: Party $partyId wasn't found").asRuntimeException()
+        }
+
+        if(request.accepted) {
+            partyManager.assignMemberToParty(executorName, PartyRole.MEMBER, party)
+            executor.sendMessage(miniMessage("<gray>You successfully accepted $invitorName's party invite."))
+            return handleInviteResponse { }
+        }
+
+        party.invitesList.removeIf { it.invitedName.equals(executorName, true) }
+        executor.sendMessage(miniMessage("<gray>You denied $invitorName's party invite."))
+        return handleInviteResponse { }
+    }
 
     private suspend fun retrieveParty(memberName: String): Party {
         val partyId = partyManager.informationHolder(memberName).partyId ?: run {
