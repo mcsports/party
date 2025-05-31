@@ -3,6 +3,7 @@ package club.mcsports.droplet.party.plugin.command
 import app.simplecloud.plugin.api.shared.extension.text
 import club.mcsports.droplet.party.api.PartyApi
 import com.mcsports.party.v1.PartyRole
+import com.mcsports.party.v1.partySettings
 import com.velocitypowered.api.command.SimpleCommand
 import com.velocitypowered.api.proxy.Player
 import io.grpc.Status
@@ -11,9 +12,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.kyori.adventure.text.Component
+import org.slf4j.Logger
 
 class PartyCommand(
-    private val api: PartyApi.Coroutine
+    private val api: PartyApi.Coroutine,
+    private val logger: Logger
 ) : SimpleCommand {
 
     private val help = mutableMapOf(
@@ -26,12 +29,13 @@ class PartyCommand(
         "demote <player>" to "Demotes a player in your party",
         "kick <player>" to "Kicks a player from your party",
         "accept <player>" to "Accepts a party invite from a player",
-        "deny <player>" to "Denies a party invite from a player"
+        "deny <player>" to "Denies a party invite from a player",
+        "chat <message>" to "Sends a message to your party chat"
     )
 
     override fun execute(invocation: SimpleCommand.Invocation) {
 
-        if(invocation.source() !is Player) {
+        if (invocation.source() !is Player) {
             invocation.source().sendMessage(text("<red>You have to be a player to do this."))
             return
         }
@@ -40,33 +44,36 @@ class PartyCommand(
         val player = invocation.source() as Player
         val alias = invocation.alias()
 
-        /*
-        Command-Todo:
+        if(args.size >= 2 && args[0].lowercase() == "chat") {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    api.getInteraction().partyChat(player.uniqueId, text(args.drop(1).joinToString(" ")))
+                } catch (exception: StatusRuntimeException) {
+                    logger.warn(exception.status.description)
+                }
+            }
+            return
+        }
 
-        create
-        info
-        delete
-        leave
-
-        invite <player> (create party if doesnt exist etc)
-        promote <player>
-        demote <player>
-        kick <player>
-        accept <player>
-        deny <player>
-        */
-
-        if(args.isEmpty()) {
+        if (args.isEmpty()) {
             player.sendHelp(alias)
             return
         }
 
-        if(args.size == 1) {
+        if (args.size == 1) {
             CoroutineScope(Dispatchers.IO).launch {
                 when (args[0].lowercase()) {
                     "create" -> {
-                        //TODO: Create party
+                        try {
+                            api.getInteraction().createParty(player.uniqueId, partySettings {
+                                this.isPrivate = true
+                                this.allowInvites = true
+                            }, emptyList())
+                        } catch (exception: StatusRuntimeException) {
+                            logger.warn(exception.status.description)
+                        }
                     }
+
                     "info" -> {
                         try {
                             val party = api.getData().getParty(player.uniqueId)
@@ -78,20 +85,89 @@ class PartyCommand(
 
                             val settings = party.settings
                             player.sendMessage(text("<yellow>Settings:"))
-                            player.sendMessage(text("<yellow>Public: <gray>${if(settings.isPrivate) "No" else "Yes"}"))
-                            player.sendMessage(text("<yellow>Invite Only: <gray>${if(settings.allowInvites) "No" else "Yes"}"))
+                            player.sendMessage(text("<yellow>Public: <gray>${if (settings.isPrivate) "No" else "Yes"}"))
+                            player.sendMessage(text("<yellow>Invite Only: <gray>${if (settings.allowInvites) "No" else "Yes"}"))
                         } catch (exception: StatusRuntimeException) {
-                            if(exception.status == Status.NOT_FOUND) player.sendMessage(text("<red>You are not part of any party."))
-                            else player.sendMessage(text("<red>Failed to fetch your party member data. Please call an administrator about this."))
+                            logger.warn(exception.status.description)
 
+                            if (exception.status == Status.NOT_FOUND) player.sendMessage(text("<red>You are not part of any party."))
+                            else player.sendMessage(text("<red>Failed to fetch your party member data. Please call an administrator about this."))
                         }
 
                     }
+
                     "delete" -> {
-                        api.getInteraction().deleteParty(player.uniqueId)
+                        try {
+                            api.getInteraction().deleteParty(player.uniqueId)
+                        } catch(exception: StatusRuntimeException) {
+                            logger.warn(exception.status.description)
+                        }
                     }
+
                     "leave" -> {
                         api.getInteraction().memberLeaveParty(player.uniqueId)
+                    }
+                }
+            }
+
+            return
+        }
+
+        if (args.size == 2) {
+            val targetName = args[1]
+
+            CoroutineScope(Dispatchers.IO).launch {
+                when (args[0].lowercase()) {
+                    "invite" -> {
+                        try {
+                            api.getInteraction().inviteMember(targetName, player.uniqueId)
+                        } catch (exception: StatusRuntimeException) {
+                            logger.warn(exception.status.description)
+                        }
+                    }
+
+                    "promote" -> {
+                        try {
+                            api.getInteraction().promoteMember(targetName, player.uniqueId)
+                        } catch (exception: StatusRuntimeException) {
+                            logger.warn(exception.status.description)
+                        }
+                    }
+
+                    "demote" -> {
+                        try {
+                            api.getInteraction().demoteMember(targetName, player.uniqueId)
+                        } catch (exception: StatusRuntimeException) {
+                            logger.warn(exception.status.description)
+                        }
+                    }
+
+                    "kick" -> {
+                        try {
+                            api.getInteraction().kickMember(targetName, player.uniqueId)
+                        } catch (exception: StatusRuntimeException) {
+                            logger.warn(exception.status.description)
+                        }
+                    }
+
+                    "accept" -> {
+                        try {
+                            api.getInteraction().acceptPartyInvite(targetName, player.uniqueId)
+                        } catch (exception: StatusRuntimeException) {
+                            logger.warn(exception.status.description)
+                        }
+                    }
+
+                    "deny" -> {
+                        try {
+                            api.getInteraction().denyPartyInvite(targetName, player.uniqueId)
+                        } catch (exception: StatusRuntimeException) {
+                            logger.warn(exception.status.description)
+                        }
+                    }
+
+                    else -> {
+                        player.sendHelp(alias)
                     }
                 }
             }
@@ -102,7 +178,6 @@ class PartyCommand(
     }
 
     private fun Player.sendHelp(alias: String) {
-
         this.sendMessage(text("<gray>Party Commands:"))
         help.forEach { (command, description) ->
             this.sendMessage(text("<yellow>/$alias $command <dark_gray>-> <gray>$description"))
