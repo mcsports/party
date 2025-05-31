@@ -430,7 +430,7 @@ class PartyInteractionService(
             return handleInviteResponse { }
         }
 
-        party.invitesList.removeIf { it.invitedName.equals(executorName, true) }
+        partyManager.deleteMemberInvite(executorName, party)
         executor.sendMessage(text("<gray>You denied $invitorName's party invite."))
         return handleInviteResponse { }
     }

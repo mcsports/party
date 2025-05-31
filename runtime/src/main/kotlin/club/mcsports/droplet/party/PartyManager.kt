@@ -32,11 +32,11 @@ class PartyManager {
                 this.timeJoined = timeStampNow
             })
 
-            val temp = this.invites.toMutableList()
-            temp.removeIf { it.invitedName == memberName }
+            val tempInvites = this.invites.toMutableList()
+            tempInvites.removeIf { it.invitedName == memberName }
 
             this.invites.clear()
-            this.invites.addAll(temp)
+            this.invites.addAll(tempInvites)
         }.also { updatedParty ->
             parties[updatedParty.id.asUuid()] = updatedParty
         }
@@ -45,55 +45,88 @@ class PartyManager {
     }
 
     fun removeMemberFromParty(memberName: String, party: Party): PartyMember? {
-        party.membersList.removeIf { it.name == memberName }
-        informationHolder(memberName).partyId = null
+        party.copy {
+            val tempMembers = this.members.toMutableList()
+            tempMembers.toMutableList().removeIf { it.name == memberName }
+            informationHolder(memberName).partyId = null
 
-        if(party.membersList.isEmpty()) {
-            parties.remove(party.id.asUuid())
-            return null
-        }
+            this.members.clear()
+            if(tempMembers.isEmpty()) {
+                parties.remove(party.id.asUuid())
+                return null
+            }
+            this.members.addAll(tempMembers)
+        }.also { updatedParty ->
+            parties[updatedParty.id.asUuid()] = updatedParty
 
-        return party.membersList.filter { it.role != PartyRole.OWNER }.minByOrNull { loopMember ->
-            val timeJoined = loopMember.timeJoined
-            Instant.ofEpochSecond(timeJoined.seconds, timeJoined.nanos.toLong())
+            return updatedParty.membersList.filter { it.role != PartyRole.OWNER }.minByOrNull { loopMember ->
+                val timeJoined = loopMember.timeJoined
+                Instant.ofEpochSecond(timeJoined.seconds, timeJoined.nanos.toLong())
+            }
         }
     }
 
     fun inviteMemberToParty(memberName: String, invitorName: String, party: Party) {
         val inviteHolder = informationHolder(memberName).invites
-        inviteHolder.put(invitorName, party.id.asUuid())
+        inviteHolder[invitorName] = party.id.asUuid()
 
-        party.invitesList.add(partyInvite {
-            this.invitorName = invitorName
-            this.invitedName = memberName
-        })
+        party.copy {
+            val tempInvites = this.invites.toMutableList()
+            tempInvites.add(partyInvite {
+                this.invitorName = invitorName
+                this.invitedName = memberName
+            })
+
+            this.invites.clear()
+            this.invites.addAll(tempInvites)
+        }.also { updatedParty ->
+            parties[updatedParty.id.asUuid()] = updatedParty
+        }
     }
 
     fun deleteMemberInvite(memberName: String, party: Party) {
-        party.invitesList.removeIf { it.invitedName == memberName }
+        party.copy {
+            val tempInvites = this.invites.toMutableList()
+            tempInvites.removeIf { it.invitedName == memberName }
+
+            this.invites.clear()
+            this.invites.addAll(tempInvites)
+        }.also { updatedParty ->
+            parties[updatedParty.id.asUuid()] = updatedParty
+        }
 
         val holderInvites = informationHolder(memberName).invites
         holderInvites.filter { it.value == party.id.asUuid() }.keys.forEach { key -> holderInvites.remove(key) }
     }
 
-    fun transferOwnership(memberName: String, leave: Boolean, party: Party) {
-        val oldOwner = party.membersList.first { it.role == PartyRole.OWNER} //Predicate before was 'it.id == party.ownerId' wtf
+    suspend fun transferOwnership(memberName: String, leave: Boolean, party: Party) {
+        val oldOwner = party.membersList.first { it.role == PartyRole.OWNER } //Predicate before was 'it.id == party.ownerId' wtf
 
-        if(!leave) {
-            val overwrittenOldOwner = oldOwner.copy {
-                this.role = PartyRole.MOD
+        party.copy {
+            val tempMembers = this.members.toMutableList()
+
+            if(!leave) {
+                val overwrittenOldOwner = oldOwner.copy {
+                    this.role = PartyRole.MOD
+                }
+                tempMembers.remove(oldOwner)
+                tempMembers.add(overwrittenOldOwner)
+            } else tempMembers.remove(oldOwner)
+
+            val newOwner = tempMembers.first { it.name == memberName }
+            val overwrittenNewOwner = newOwner.copy {
+                this.role = PartyRole.OWNER
             }
-            party.membersList.remove(oldOwner)
-            party.membersList.add(overwrittenOldOwner)
-        } else party.membersList.remove(oldOwner)
 
-        val newOwner = party.membersList.first { it.name == memberName }
-        val overwrittenNewOwner = newOwner.copy {
-            this.role = PartyRole.OWNER
+            tempMembers.remove(newOwner)
+            tempMembers.add(overwrittenNewOwner)
+
+            this.members.clear()
+            this.members.addAll(tempMembers)
+
+            this.ownerId = memberName.fetchPlayer().getUniqueId().toString()
         }
 
-        party.membersList.remove(newOwner)
-        party.membersList.add(overwrittenNewOwner)
     }
 
     fun setMemberRole(memberName: String, role: PartyRole, party: Party) {
@@ -101,8 +134,16 @@ class PartyManager {
             this.role = role
         }
 
-        party.membersList.removeIf { it.name == memberName }
-        party.membersList.add(partyMember)
+        party.copy {
+            val tempMembers = this.members.toMutableList()
+            tempMembers.removeIf { it.name == memberName }
+            tempMembers.add(partyMember)
+
+            this.members.clear()
+            this.members.addAll(tempMembers)
+        }.also { updatedParty ->
+            parties[updatedParty.id.asUuid()] = updatedParty
+        }
     }
 
     fun generatePartyId(): UUID {
