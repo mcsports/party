@@ -18,14 +18,14 @@ class PartyDataService(private val partyManager: PartyManager) : PartyDataGrpcKt
         val informationHolder = partyManager.informationHolder(memberName)
 
         val partyId = informationHolder.partyId
-            ?: throw Status.NOT_FOUND.withDescription("User $memberName isn't part of any party")
+            ?: throw Status.NOT_FOUND.withDescription("Failed to get party: User $memberName isn't part of any party")
                 .log(logger).asRuntimeException()
 
         val party = partyManager.parties[partyId]
             ?: run {
                 informationHolder.partyId = null
 
-                throw Status.UNAVAILABLE.withDescription("Party $memberName not found").log(logger)
+                throw Status.UNAVAILABLE.withDescription("Failed to get party: Party $memberName not found").log(logger)
                     .asRuntimeException()
             }
 
