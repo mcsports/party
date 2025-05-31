@@ -1,5 +1,6 @@
 package club.mcsports.droplet.party.service
 
+import app.simplecloud.droplet.api.time.ProtobufTimestamp
 import app.simplecloud.droplet.player.api.PlayerApi
 import app.simplecloud.plugin.api.shared.extension.text
 import club.mcsports.droplet.party.PartyManager
@@ -13,6 +14,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import org.apache.logging.log4j.LogManager
+import java.time.LocalDateTime
 import java.util.*
 
 class PartyInteractionService(
@@ -37,21 +39,39 @@ class PartyInteractionService(
             this.id = partyId.toString()
             this.ownerId = creator.getUniqueId().toString()
             this.settings = request.settings
+
+            this.members.add(
+                partyMember {
+                    this.name = creatorName
+                    this.role = PartyRole.OWNER
+                    this.timeJoined = ProtobufTimestamp.fromLocalDateTime(LocalDateTime.now())
+                }
+            )
         }
 
         partyManager.parties[partyId] = party
-        partyManager.assignMemberToParty(creatorName, PartyRole.OWNER, party)
+        partyManager.informationHolder(creatorName).partyId = partyId
 
         val offlinePlayers = mutableListOf<String>()
 
         offlinePlayers.addAll(request.invitedNamesList.mapNotNull { invitedName ->
             val inviteResult = party.inviteMember(invitedName, creatorName)
 
-            if (inviteResult.code == Status.Code.NOT_FOUND) playerApi.getOfflinePlayer(invitedName).getName()
+            return@mapNotNull if (inviteResult.code != Status.Code.OK) playerApi.getOfflinePlayer(invitedName).getName()
             else null
         })
 
         creator.sendMessage(text("<gray>You've successfully created your own party."))
+        if (offlinePlayers.isNotEmpty()) creator.sendMessage(
+            text(
+                "<red>The following players haven't been invited: ${
+                    offlinePlayers.joinToString(
+                        ", "
+                    )
+                }"
+            )
+        )
+
         return createPartyResponse {
             this.createdParty = party
             this.offlineNames.addAll(offlinePlayers)
@@ -149,7 +169,7 @@ class PartyInteractionService(
                         this.allowChatting = true
                     }
                     this.creatorId = executorId
-                    if(!request.memberName.equals(executorName, true)) this.invitedNames.add(request.memberName)
+                    if (!request.memberName.equals(executorName, true)) this.invitedNames.add(request.memberName)
                     else executor.sendMessage(text("<red>You cannot invite yourself to a party, but we've created an empty one for you."))
                 }
             )
@@ -184,9 +204,9 @@ class PartyInteractionService(
         }
 
         try {
-           invitedMemberName.fetchPlayer()
+            invitedMemberName.fetchPlayer()
         } catch (exception: StatusException) {
-            if(exception.status.code != Status.Code.NOT_FOUND) throw exception
+            if (exception.status.code != Status.Code.NOT_FOUND) throw exception
 
             executor.sendMessage(text("<red>The player you're trying to invite is offline."))
 
@@ -325,7 +345,6 @@ class PartyInteractionService(
             }
 
             promoteConfirmation.remove(executor.getUniqueId())
-            partyManager.transferOwnership(memberName, false, party)
         }
 
         val nextHigherRole = PartyRole.forNumber(partyMember.roleValue + 1) ?: run {
@@ -384,7 +403,7 @@ class PartyInteractionService(
 
         partyManager.setMemberRole(memberName, nextLowerRole, party)
 
-        executor.sendMessage(text("<gray>You successfully promoted $memberName to $nextLowerRole."))
+        executor.sendMessage(text("<gray>You successfully demoted $memberName to $nextLowerRole."))
         member.sendMessage(text("<gray>Your party role was updated to $nextLowerRole."))
         return demoteMemberResponse { }
     }
@@ -395,7 +414,8 @@ class PartyInteractionService(
 
         val invitorName = request.invitorName
 
-        val invitesList = partyManager.informationHolder(executorName).invites
+        val informationHolder = partyManager.informationHolder(executorName)
+        val invitesList = informationHolder.invites
         if (!invitesList.contains(invitorName)) {
             executor.sendMessage(text("<red>You haven't been invited by $invitorName."))
             throw Status.NOT_FOUND.withDescription("Failed to handle invite: User $executorName wasn't invited by $invitorName")
@@ -412,6 +432,13 @@ class PartyInteractionService(
         }
 
         if (request.accepted) {
+            if (informationHolder.partyId != null) {
+                executor.sendMessage(text("<red>You're already part of a party."))
+
+                throw Status.FAILED_PRECONDITION.withDescription("Failed to accept invite: User $executorName is already part of a party")
+                    .log(logger).asRuntimeException()
+            }
+
             partyManager.assignMemberToParty(executorName, PartyRole.MEMBER, party)
             executor.sendMessage(text("<gray>You successfully accepted $invitorName's party invite."))
             return handleInviteResponse { }
@@ -471,7 +498,6 @@ class PartyInteractionService(
 
             return Status.OK
         } catch (exception: StatusException) {
-            exception.printStackTrace()
             return exception.status
         }
     }
