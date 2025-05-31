@@ -22,15 +22,7 @@ class PartyInteractionService(
     private val logger = LogManager.getLogger(PartyInteractionService::class.java)
 
     override suspend fun createParty(request: CreatePartyRequest): CreatePartyResponse {
-        val creator = try {
-            request.creatorId.fetchPlayer()
-        } catch (exception: StatusException) {
-            logger.warn(exception.stackTraceToString())
-
-            throw exception
-        }
-
-        logger.info("Done fetching creator! ${creator.getName()}")
+        val creator = request.creatorId.fetchPlayer()
         val creatorName = creator.getName()
 
         if (partyManager.informationHolder(creatorName).partyId != null) {
@@ -41,35 +33,29 @@ class PartyInteractionService(
                 .asRuntimeException()
         }
 
-        try {
-            val partyId = partyManager.generatePartyId()
+        val partyId = partyManager.generatePartyId()
+        val party = party {
+            this.id = partyId.toString()
+            this.ownerId = creator.toString()
+            this.settings = request.settings
+        }
 
-            val party = party {
-                this.id = partyId.toString()
-                this.ownerId = creator.toString()
-                this.settings = request.settings
-            }
+        partyManager.parties[partyId] = party
+        partyManager.assignMemberToParty(creatorName, PartyRole.OWNER, party)
 
-            partyManager.parties[partyId] = party
-            partyManager.assignMemberToParty(creatorName, PartyRole.OWNER, party)
+        val offlinePlayers = mutableListOf<String>()
 
-            val offlinePlayers = mutableListOf<String>()
+        offlinePlayers.addAll(request.invitedNamesList.mapNotNull { invitedName ->
+            val inviteResult = party.inviteMember(invitedName, creatorName)
 
-            offlinePlayers.addAll(request.invitedNamesList.mapNotNull { invitedName ->
-                val inviteResult = party.inviteMember(invitedName, creatorName)
+            if (inviteResult.code == Status.Code.NOT_FOUND) playerApi.getOfflinePlayer(invitedName).getName()
+            else null
+        })
 
-                if (inviteResult == Status.NOT_FOUND) playerApi.getOfflinePlayer(invitedName).getName()
-                else null
-            })
-
-            creator.sendMessage(text("<gray>You've successfully created your own party."))
-            return createPartyResponse {
-                this.createdParty = party
-                this.offlineNames.addAll(offlinePlayers)
-            }
-        }catch (e: Exception) {
-            logger.error(e.stackTraceToString())
-            throw e
+        creator.sendMessage(text("<gray>You've successfully created your own party."))
+        return createPartyResponse {
+            this.createdParty = party
+            this.offlineNames.addAll(offlinePlayers)
         }
     }
 

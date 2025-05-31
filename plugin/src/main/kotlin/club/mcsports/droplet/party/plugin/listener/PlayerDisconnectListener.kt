@@ -3,7 +3,7 @@ package club.mcsports.droplet.party.plugin.listener
 import club.mcsports.droplet.party.api.PartyApi
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
-import io.grpc.StatusRuntimeException
+import io.grpc.StatusException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,7 +19,7 @@ class PlayerDisconnectListener(
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 api.getInteraction().memberLeaveParty(event.player.uniqueId)
-            } catch (exception: StatusRuntimeException) {
+            } catch (exception: StatusException) {
                 logger.warn(exception.status.description)
             }
         }

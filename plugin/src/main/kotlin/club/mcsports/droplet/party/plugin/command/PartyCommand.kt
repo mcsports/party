@@ -7,7 +7,7 @@ import com.mcsports.party.v1.partySettings
 import com.velocitypowered.api.command.SimpleCommand
 import com.velocitypowered.api.proxy.Player
 import io.grpc.Status
-import io.grpc.StatusRuntimeException
+import io.grpc.StatusException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -48,7 +48,7 @@ class PartyCommand(
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     api.getInteraction().partyChat(player.uniqueId, text(args.drop(1).joinToString(" ")))
-                } catch (exception: StatusRuntimeException) {
+                } catch (exception: StatusException) {
                     logger.warn(exception.status.description)
                 }
             }
@@ -69,7 +69,7 @@ class PartyCommand(
                                 this.isPrivate = true
                                 this.allowInvites = true
                             }, emptyList())
-                        } catch (exception: StatusRuntimeException) {
+                        } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
                         }
                     }
@@ -87,10 +87,10 @@ class PartyCommand(
                             player.sendMessage(text("<yellow>Settings:"))
                             player.sendMessage(text("<yellow>Public: <gray>${if (settings.isPrivate) "No" else "Yes"}"))
                             player.sendMessage(text("<yellow>Invite Only: <gray>${if (settings.allowInvites) "No" else "Yes"}"))
-                        } catch (exception: StatusRuntimeException) {
+                        } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
 
-                            if (exception.status == Status.NOT_FOUND) player.sendMessage(text("<red>You are not part of any party."))
+                            if (exception.status.code == Status.Code.NOT_FOUND) player.sendMessage(text("<red>You are not part of any party."))
                             else player.sendMessage(text("<red>Failed to fetch your party member data. Please call an administrator about this."))
                         }
 
@@ -99,7 +99,7 @@ class PartyCommand(
                     "delete" -> {
                         try {
                             api.getInteraction().deleteParty(player.uniqueId)
-                        } catch(exception: StatusRuntimeException) {
+                        } catch(exception: StatusException) {
                             logger.warn(exception.status.description)
                         }
                     }
@@ -121,7 +121,7 @@ class PartyCommand(
                     "invite" -> {
                         try {
                             api.getInteraction().inviteMember(targetName, player.uniqueId)
-                        } catch (exception: StatusRuntimeException) {
+                        } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
                         }
                     }
@@ -129,7 +129,7 @@ class PartyCommand(
                     "promote" -> {
                         try {
                             api.getInteraction().promoteMember(targetName, player.uniqueId)
-                        } catch (exception: StatusRuntimeException) {
+                        } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
                         }
                     }
@@ -137,7 +137,7 @@ class PartyCommand(
                     "demote" -> {
                         try {
                             api.getInteraction().demoteMember(targetName, player.uniqueId)
-                        } catch (exception: StatusRuntimeException) {
+                        } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
                         }
                     }
@@ -145,7 +145,7 @@ class PartyCommand(
                     "kick" -> {
                         try {
                             api.getInteraction().kickMember(targetName, player.uniqueId)
-                        } catch (exception: StatusRuntimeException) {
+                        } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
                         }
                     }
@@ -153,7 +153,7 @@ class PartyCommand(
                     "accept" -> {
                         try {
                             api.getInteraction().acceptPartyInvite(targetName, player.uniqueId)
-                        } catch (exception: StatusRuntimeException) {
+                        } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
                         }
                     }
@@ -161,7 +161,7 @@ class PartyCommand(
                     "deny" -> {
                         try {
                             api.getInteraction().denyPartyInvite(targetName, player.uniqueId)
-                        } catch (exception: StatusRuntimeException) {
+                        } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
                         }
                     }
