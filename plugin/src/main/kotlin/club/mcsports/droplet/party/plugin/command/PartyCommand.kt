@@ -80,7 +80,7 @@ class PartyCommand(
                             val party = api.getData().getParty(player.uniqueId)
                             player.sendMessage(text("<gray>Party Info:"))
                             player.sendMessage(text("<yellow>Owner: <gray>${party.membersList.first { it.role == PartyRole.OWNER }.name}"))
-                            player.sendMessage(text("<yellow>Members: <gray>${party.membersList.joinToString(", ") { it.name }}"))
+                            player.sendMessage(text("<yellow>Members: <gray>${party.membersList.joinToString(", ") { "${it.name} (role: ${it.roleValue})" }}"))
 
                             player.sendMessage(Component.empty())
 
