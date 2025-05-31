@@ -1,9 +1,9 @@
 package club.mcsports.droplet.party
 
+import app.simplecloud.droplet.api.time.ProtobufTimestamp
 import club.mcsports.droplet.party.extension.asUuid
 import club.mcsports.droplet.party.extension.fetchPlayer
 import club.mcsports.droplet.party.player.PartyInformationHolder
-import com.google.protobuf.timestamp
 import com.mcsports.party.v1.Party
 import com.mcsports.party.v1.PartyMember
 import com.mcsports.party.v1.PartyRole
@@ -11,6 +11,7 @@ import com.mcsports.party.v1.copy
 import com.mcsports.party.v1.partyInvite
 import com.mcsports.party.v1.partyMember
 import java.time.Instant
+import java.time.LocalDateTime
 import java.util.UUID
 
 class PartyManager {
@@ -22,14 +23,7 @@ class PartyManager {
             this.members.add(partyMember {
                 this.name = memberName
                 this.role = role
-
-                val now = Instant.now()
-                val timeStampNow = timestamp {
-                    this.nanos = now.nano
-                    this.seconds = now.epochSecond
-                }
-
-                this.timeJoined = timeStampNow
+                this.timeJoined = ProtobufTimestamp.fromLocalDateTime(LocalDateTime.now())
             })
 
             val tempInvites = this.invites.toMutableList()
@@ -125,6 +119,11 @@ class PartyManager {
             this.members.addAll(tempMembers)
 
             this.ownerId = memberName.fetchPlayer().getUniqueId().toString()
+        }.also { updatedParty ->
+            parties[updatedParty.id.asUuid()] = updatedParty
+
+            if (leave) informationHolder(memberName).partyId = null
+            else informationHolder(memberName).partyId = updatedParty.id.asUuid()
         }
 
     }
