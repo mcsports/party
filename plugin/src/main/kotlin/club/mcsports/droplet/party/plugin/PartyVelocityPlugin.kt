@@ -38,7 +38,7 @@ class PartyVelocityPlugin() {
     fun onInit(event: ProxyInitializeEvent) {
         api = PartyApi.createCoroutineApi()
         server.commandManager.register(
-            server.commandManager.metaBuilder("party").plugin(this).build(),
+            server.commandManager.metaBuilder("party").aliases("p").plugin(this).build(),
             PartyCommand(api, logger)
         )
         server.eventManager.register(this, PlayerDisconnectListener(api, logger))
