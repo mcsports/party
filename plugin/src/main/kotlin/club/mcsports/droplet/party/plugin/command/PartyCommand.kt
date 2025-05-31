@@ -68,6 +68,7 @@ class PartyCommand(
                             api.getInteraction().createParty(player.uniqueId, partySettings {
                                 this.isPrivate = true
                                 this.allowInvites = true
+                                this.allowChatting = true
                             }, emptyList())
                         } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
@@ -86,7 +87,7 @@ class PartyCommand(
                             val settings = party.settings
                             player.sendMessage(text("<yellow>Settings:"))
                             player.sendMessage(text("<yellow>Public: <gray>${if (settings.isPrivate) "No" else "Yes"}"))
-                            player.sendMessage(text("<yellow>Invite Only: <gray>${if (settings.allowInvites) "No" else "Yes"}"))
+                            player.sendMessage(text("<yellow>Invites: <gray>${if (settings.allowInvites) "Yes" else "No"}"))
                         } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
 

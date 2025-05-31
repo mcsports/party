@@ -27,7 +27,6 @@ class PartyInteractionService(
 
         if (partyManager.informationHolder(creatorName).partyId != null) {
             creator.sendMessage(text("<red>You cannot create a party as long as you're already part of one."))
-
             throw Status.FAILED_PRECONDITION.withDescription("Failed to create party for user $creatorName: User is already part of a party")
                 .log(logger)
                 .asRuntimeException()
@@ -36,7 +35,7 @@ class PartyInteractionService(
         val partyId = partyManager.generatePartyId()
         val party = party {
             this.id = partyId.toString()
-            this.ownerId = creator.toString()
+            this.ownerId = creator.getUniqueId().toString()
             this.settings = request.settings
         }
 
@@ -147,9 +146,11 @@ class PartyInteractionService(
                     this.settings = partySettings {
                         this.allowInvites = true
                         this.isPrivate = true
+                        this.allowChatting = true
                     }
                     this.creatorId = executorId
-                    this.invitedNames.add(request.memberName)
+                    if(!request.memberName.equals(executorName, true)) this.invitedNames.add(request.memberName)
+                    else executor.sendMessage(text("<red>You cannot invite yourself to a party, but we've created an empty one for you."))
                 }
             )
 
@@ -182,8 +183,11 @@ class PartyInteractionService(
                 .log(logger).asRuntimeException()
         }
 
-        val targetPlayer = playerApi.getOfflinePlayer(invitedMemberName)
-        if (!targetPlayer.isOnline()) {
+        try {
+           invitedMemberName.fetchPlayer()
+        } catch (exception: StatusException) {
+            if(exception.status.code != Status.Code.NOT_FOUND) throw exception
+
             executor.sendMessage(text("<red>The player you're trying to invite is offline."))
 
             throw Status.NOT_FOUND.withDescription("Failed to invite member: User $invitedMemberName is offline")
@@ -385,9 +389,6 @@ class PartyInteractionService(
         return demoteMemberResponse { }
     }
 
-    /**
-     * TODO: Implement invite handling
-     */
     override suspend fun handleInvite(request: HandleInviteRequest): HandleInviteResponse {
         val executor = request.executorId.fetchPlayer()
         val executorName = executor.getName()
@@ -459,7 +460,7 @@ class PartyInteractionService(
     private suspend fun Party.inviteMember(memberName: String, invitorName: String): Status {
         try {
             val invitedPlayer = playerApi.getOnlinePlayer(memberName)
-            val partyOwnerName = playerApi.getOnlinePlayer(ownerId.asUuid()).getName()
+            val partyOwnerName = playerApi.getOnlinePlayer(this.ownerId.asUuid()).getName()
             partyManager.inviteMemberToParty(memberName, invitorName, this)
 
             invitedPlayer.sendMessage(
