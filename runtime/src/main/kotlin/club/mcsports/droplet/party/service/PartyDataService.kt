@@ -14,7 +14,6 @@ class PartyDataService(private val partyManager: PartyManager) : PartyDataGrpcKt
 
     private val logger = LogManager.getLogger(PartyDataService::class.java)
     override suspend fun getParty(request: PartyRequest): PartyResponse {
-
         val memberName = request.memberId.fetchPlayer().getName()
         val informationHolder = partyManager.informationHolder(memberName)
 
