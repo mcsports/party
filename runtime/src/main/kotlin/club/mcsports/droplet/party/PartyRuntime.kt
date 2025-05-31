@@ -26,10 +26,12 @@ class PartyRuntime(
 
     companion object {
         private val logger = LogManager.getLogger(PartyRuntime::class.java)
+        lateinit var playerApiSingleton: PlayerApi.Coroutine
+            private set
     }
 
     private val controllerApi = ControllerApi.createCoroutineApi(args.authSecret)
-    private val playerApi = PlayerApi.createCoroutineApi(args.authSecret)
+    private val playerApi = PlayerApi.createCoroutineApi(args.authSecret).also { playerApiSingleton = it }
     private val pubSubClient = controllerApi.getPubSubClient()
     private val callCredentials = AuthCallCredentials(args.authSecret)
 

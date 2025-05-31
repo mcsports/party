@@ -2,6 +2,7 @@ package club.mcsports.droplet.party.plugin
 
 import club.mcsports.droplet.party.api.PartyApi
 import club.mcsports.droplet.party.plugin.command.PartyCommand
+import club.mcsports.droplet.party.plugin.listener.PlayerDisconnectListener
 import com.google.inject.Inject
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
@@ -22,7 +23,6 @@ import org.slf4j.Logger
     dependencies = [Dependency(id = "simplecloud-api")]
 )
 class PartyVelocityPlugin() {
-
     lateinit var server: ProxyServer
     lateinit var logger: Logger
 
@@ -38,17 +38,11 @@ class PartyVelocityPlugin() {
     fun onInit(event: ProxyInitializeEvent) {
         api = PartyApi.createCoroutineApi()
         server.commandManager.register(
-            server.commandManager.metaBuilder("queue").plugin(this).build(),
-            PartyCommand(api)
+            server.commandManager.metaBuilder("party").plugin(this).build(),
+            PartyCommand(api, logger)
         )
-        logger.info("Initializing mcsports-queue")
-    }
-
-    @Subscribe
-    fun onQuit(event: DisconnectEvent) {
-        CoroutineScope(Dispatchers.IO).launch {
-
-        }
+        server.eventManager.register(this, PlayerDisconnectListener(api, logger))
+        logger.info("Initializing mcsports-party")
     }
 
 }

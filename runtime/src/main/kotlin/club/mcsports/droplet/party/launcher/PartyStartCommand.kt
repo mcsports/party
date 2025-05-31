@@ -19,12 +19,12 @@ class PartyStartCommand  : SuspendingCliktCommand() {
 
     init {
         context {
-            valueSource = PropertiesValueSource.from(File("queue.properties"), false, ValueSource.envvarKey())
+            valueSource = PropertiesValueSource.from(File("party.properties"), false, ValueSource.envvarKey())
         }
     }
 
     val grpcHost: String by option(help = "Grpc host (default: 0.0.0.0)", envvar = "GRPC_HOST").default("0.0.0.0")
-    val grpcPort: Int by option(help = "Grpc port (default: 5830)", envvar = "GRPC_PORT").int().default(5830)
+    val grpcPort: Int by option(help = "Grpc port (default: 5831)", envvar = "GRPC_PORT").int().default(5831)
 
     val controllerGrpcHost: String by option(
         help = "Controller Grpc host (default: 0.0.0.0)",

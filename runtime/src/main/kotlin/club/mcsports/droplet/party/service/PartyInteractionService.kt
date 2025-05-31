@@ -5,56 +5,71 @@ import app.simplecloud.plugin.api.shared.extension.text
 import club.mcsports.droplet.party.PartyManager
 import club.mcsports.droplet.party.extension.asUuid
 import club.mcsports.droplet.party.extension.fetchPlayer
+import club.mcsports.droplet.party.extension.log
 import com.mcsports.party.v1.*
 import io.grpc.Status
 import io.grpc.StatusException
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
-import java.util.UUID
+import org.apache.logging.log4j.LogManager
+import java.util.*
 
 class PartyInteractionService(
     private val partyManager: PartyManager,
-    private val playerApi: PlayerApi.Coroutine
+    private val playerApi: PlayerApi.Coroutine,
 ) : PartyInteractionGrpcKt.PartyInteractionCoroutineImplBase() {
+    private val logger = LogManager.getLogger(PartyInteractionService::class.java)
 
     override suspend fun createParty(request: CreatePartyRequest): CreatePartyResponse {
-        val creator = request.creatorId.fetchPlayer()
+        val creator = try {
+            request.creatorId.fetchPlayer()
+        } catch (exception: StatusException) {
+            logger.warn(exception.stackTraceToString())
+
+            throw exception
+        }
+
+        logger.info("Done fetching creator! ${creator.getName()}")
         val creatorName = creator.getName()
 
         if (partyManager.informationHolder(creatorName).partyId != null) {
             creator.sendMessage(text("<red>You cannot create a party as long as you're already part of one."))
 
             throw Status.FAILED_PRECONDITION.withDescription("Failed to create party for user $creatorName: User is already part of a party")
+                .log(logger)
                 .asRuntimeException()
         }
 
-        val partyId = partyManager.generatePartyId()
+        try {
+            val partyId = partyManager.generatePartyId()
 
-        val party = party {
-            this.id = partyId.toString()
-            this.ownerId = creator.toString()
-            this.settings = request.settings
-        }
+            val party = party {
+                this.id = partyId.toString()
+                this.ownerId = creator.toString()
+                this.settings = request.settings
+            }
 
-        partyManager.parties[partyId] = party
-        partyManager.assignMemberToParty(creatorName, PartyRole.OWNER, party)
+            partyManager.parties[partyId] = party
+            partyManager.assignMemberToParty(creatorName, PartyRole.OWNER, party)
 
-        val offlinePlayers = mutableListOf<String>()
+            val offlinePlayers = mutableListOf<String>()
 
-        offlinePlayers.addAll(request.invitedNamesList.mapNotNull { invitedName ->
-            val inviteResult = party.inviteMember(invitedName, creatorName)
+            offlinePlayers.addAll(request.invitedNamesList.mapNotNull { invitedName ->
+                val inviteResult = party.inviteMember(invitedName, creatorName)
 
-            if (inviteResult == Status.NOT_FOUND) playerApi.getOfflinePlayer(invitedName).getName()
-            else null
-        })
+                if (inviteResult == Status.NOT_FOUND) playerApi.getOfflinePlayer(invitedName).getName()
+                else null
+            })
 
-        creator.sendMessage(text("<gray>You've successfully created your own party."))
-
-
-        return createPartyResponse {
-            this.createdParty = party
-            this.offlineNames.addAll(offlinePlayers)
+            creator.sendMessage(text("<gray>You've successfully created your own party."))
+            return createPartyResponse {
+                this.createdParty = party
+                this.offlineNames.addAll(offlinePlayers)
+            }
+        }catch (e: Exception) {
+            logger.error(e.stackTraceToString())
+            throw e
         }
     }
 
@@ -70,7 +85,7 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>You don't have enough permissions to do delete the party."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to delete party: User $executorName isn't the party owner")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         party.membersList.toList().forEach { loopMember ->
@@ -99,7 +114,7 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>Sorry, but chatting is currently disabled in your party."))
 
             throw Status.UNAVAILABLE.withDescription("Failed to send party chat message: Chatting is disabled in party $partyId")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         val senderInformationComponent = when (partyMember.role) {
@@ -136,8 +151,24 @@ class PartyInteractionService(
     }
 
     override suspend fun invitePlayer(request: InvitePlayerRequest): InvitePlayerResponse {
-        val executor = request.executorId.fetchPlayer()
+        val executorId = request.executorId
+        val executor = executorId.fetchPlayer()
         val executorName = executor.getName()
+
+        if (partyManager.informationHolder(executorName).partyId == null) {
+            createParty(
+                createPartyRequest {
+                    this.settings = partySettings {
+                        this.allowInvites = true
+                        this.isPrivate = true
+                    }
+                    this.creatorId = executorId
+                    this.invitedNames.add(request.memberName)
+                }
+            )
+
+            return invitePlayerResponse { }
+        }
 
         val party = retrieveParty(executorName)
         val executingPartyMember = party.retrieveMember(executorName)
@@ -147,14 +178,14 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>You don't have enough permissions to invite members to the party."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to invite member: User $executorName isn't permitted to do that")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         if (!party.settings.allowInvites && executingPartyMember.role != PartyRole.OWNER) {
             executor.sendMessage(text("<red>Sorry, but invites are currently disabled in your party."))
 
             throw Status.UNAVAILABLE.withDescription("Failed to invite member: Invites are disabled in party $partyId")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         val invitedMemberName = request.memberName
@@ -162,7 +193,7 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>You cannot invite yourself to the party."))
 
             throw Status.INVALID_ARGUMENT.withDescription("Failed to invite member: User $executorName cannot invite themself")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         val targetPlayer = playerApi.getOfflinePlayer(invitedMemberName)
@@ -170,14 +201,14 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>The player you're trying to invite is offline."))
 
             throw Status.NOT_FOUND.withDescription("Failed to invite member: User $invitedMemberName is offline")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         if (party.invitesList.any { invite -> invite.invitedName == invitedMemberName }) {
             executor.sendMessage(text("<red>The player you're trying to invite already has a pending invite for your party."))
 
             throw Status.ALREADY_EXISTS.withDescription("Failed to invite member: User $invitedMemberName already has a pending invite for party $partyId")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         party.inviteMember(invitedMemberName, executorName)
@@ -207,14 +238,14 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>You don't have enough permissions to do kick members."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to kick member: User $executorName isn't permitted to do that")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         if (party.membersList.none { it.name == memberName }) {
             executor.sendMessage(text("<red>The given player isn't part of your party."))
 
             throw Status.NOT_FOUND.withDescription("Failed to kick member: User $memberName isn't part of party $partyId")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         val partyMember = party.retrieveMember(memberName)
@@ -223,7 +254,7 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>You don't have enough permissions to do kick $memberName."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to kick member: User $executorName isn't permitted to kick higher role member $memberName")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         partyManager.removeMemberFromParty(memberName, party)
@@ -279,7 +310,7 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>You don't have enough permissions to promote members."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to promote member: User $executorName isn't permitted to do that.")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         val memberName = request.memberName
@@ -289,7 +320,7 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>You can't promote yourself."))
 
             throw Status.INVALID_ARGUMENT.withDescription("Failed to promote member: User $executorName cannot promote themself")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         val partyMember = party.retrieveMember(memberName)
@@ -300,7 +331,7 @@ class PartyInteractionService(
                 executor.sendMessage(text("<red>You're about to transfer the ownership of the party to $memberName. Please try again to confirm your action!"))
 
                 throw Status.FAILED_PRECONDITION.withDescription("Failed to promote member: User $executorName has to confirm the action first")
-                    .asRuntimeException()
+                    .log(logger).asRuntimeException()
             }
 
             promoteConfirmation.remove(executor.getUniqueId())
@@ -311,7 +342,7 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>$memberName already has the highest party role."))
 
             throw Status.INVALID_ARGUMENT.withDescription("Failed to promote member: User $memberName already has highest role (${partyMember.roleValue})")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         partyManager.setMemberRole(memberName, nextHigherRole, party)
@@ -332,7 +363,7 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>You don't have enough permissions to demote members."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to demote member: User $executorName isn't permitted to do that.")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         val memberName = request.memberName
@@ -342,7 +373,7 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>You can't demote yourself."))
 
             throw Status.INVALID_ARGUMENT.withDescription("Failed to demote member: User $executorName cannot demote themself")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         val partyMember = party.retrieveMember(memberName)
@@ -351,14 +382,14 @@ class PartyInteractionService(
             executor.sendMessage(text("<red>$memberName has a higher role than you, therefore you can't demote them."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to demote member: User $executor has a weaker role than $member")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         val nextLowerRole = PartyRole.forNumber(partyMember.roleValue - 1) ?: run {
             executor.sendMessage(text("<red>$memberName already has the lowest party role."))
 
             throw Status.INVALID_ARGUMENT.withDescription("Failed to demote member: User $memberName already has lowest role (${partyMember.roleValue})")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         partyManager.setMemberRole(memberName, nextLowerRole, party)
@@ -378,9 +409,10 @@ class PartyInteractionService(
         val invitorName = request.invitorName
 
         val invitesList = partyManager.informationHolder(executorName).invites
-        if(!invitesList.contains(invitorName)) {
+        if (!invitesList.contains(invitorName)) {
             executor.sendMessage(text("<red>You haven't been invited by $invitorName."))
-            throw Status.NOT_FOUND.withDescription("Failed to handle invite: User $executorName wasn't invited by $invitorName").asRuntimeException()
+            throw Status.NOT_FOUND.withDescription("Failed to handle invite: User $executorName wasn't invited by $invitorName")
+                .log(logger).asRuntimeException()
         }
 
         val partyId = invitesList[invitorName]
@@ -388,10 +420,11 @@ class PartyInteractionService(
             invitesList.remove(invitorName)
 
             executor.sendMessage(text("<red>Sorry, the corresponding party doesn't exist anymore."))
-            throw Status.NOT_FOUND.withDescription("Failed to handle invite: Party $partyId wasn't found").asRuntimeException()
+            throw Status.NOT_FOUND.withDescription("Failed to handle invite: Party $partyId wasn't found")
+                .log(logger).asRuntimeException()
         }
 
-        if(request.accepted) {
+        if (request.accepted) {
             partyManager.assignMemberToParty(executorName, PartyRole.MEMBER, party)
             executor.sendMessage(text("<gray>You successfully accepted $invitorName's party invite."))
             return handleInviteResponse { }
@@ -408,14 +441,14 @@ class PartyInteractionService(
             player.sendMessage(text("<red>You aren't in a party!"))
 
             throw Status.FAILED_PRECONDITION.withDescription("Failed to retrieve party: User $memberName isn't part of any party")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         val party = partyManager.parties[partyId] ?: run {
             player.sendMessage(text("<red>Failed to fetch your current party. Please call an administrator about this."))
 
             throw Status.NOT_FOUND.withDescription("Failed to retrieve party: Party $partyId not found")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         return party
@@ -431,7 +464,7 @@ class PartyInteractionService(
             }
 
             throw Status.DATA_LOSS.withDescription("Failed to retrieve party: User $memberName isn't part of party $id anymore")
-                .asRuntimeException()
+                .log(logger).asRuntimeException()
         }
 
         return partyMember

@@ -18,20 +18,29 @@ class PartyManager {
     val informationHolders = mutableMapOf<String, PartyInformationHolder>()
 
     fun assignMemberToParty(memberName: String, role: PartyRole, party: Party) {
-        party.membersList.add(partyMember {
-            this.name = memberName
-            this.role = role
+        party.copy {
+            this.members.add(partyMember {
+                this.name = memberName
+                this.role = role
 
-            val now = Instant.now()
-            val timeStampNow = timestamp {
-                this.nanos = now.nano
-                this.seconds = now.epochSecond
-            }
+                val now = Instant.now()
+                val timeStampNow = timestamp {
+                    this.nanos = now.nano
+                    this.seconds = now.epochSecond
+                }
 
-            this.timeJoined = timeStampNow
-        })
+                this.timeJoined = timeStampNow
+            })
 
-        party.invitesList.removeIf { it.invitedName == memberName }
+            val temp = this.invites.toMutableList()
+            temp.removeIf { it.invitedName == memberName }
+
+            this.invites.clear()
+            this.invites.addAll(temp)
+        }.also { updatedParty ->
+            parties[updatedParty.id.asUuid()] = updatedParty
+        }
+
         informationHolder(memberName).partyId = party.id.asUuid()
     }
 
