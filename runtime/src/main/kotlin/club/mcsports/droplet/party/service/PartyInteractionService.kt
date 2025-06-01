@@ -344,6 +344,7 @@ class PartyInteractionService(
                     .log(logger).asRuntimeException()
             }
 
+            partyManager.transferOwnership(memberName, false, party)
             promoteConfirmation.remove(executor.getUniqueId())
         }
 
@@ -354,7 +355,7 @@ class PartyInteractionService(
                 .log(logger).asRuntimeException()
         }
 
-        partyManager.setMemberRole(memberName, nextHigherRole, party)
+        if(nextHigherRole != PartyRole.OWNER) partyManager.setMemberRole(memberName, nextHigherRole, party)
 
         executor.sendMessage(text("<gray>You successfully promoted $memberName to $nextHigherRole"))
         member.sendMessage(text("<gray>Your party role was updated to $nextHigherRole."))
