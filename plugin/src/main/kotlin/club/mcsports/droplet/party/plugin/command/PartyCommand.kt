@@ -2,6 +2,8 @@ package club.mcsports.droplet.party.plugin.command
 
 import app.simplecloud.plugin.api.shared.extension.text
 import club.mcsports.droplet.party.api.PartyApi
+import club.mcsports.droplet.party.shared.Color
+import club.mcsports.droplet.party.shared.Glyphs
 import com.mcsports.party.v1.PartyRole
 import com.mcsports.party.v1.partySettings
 import com.velocitypowered.api.command.SimpleCommand
@@ -36,7 +38,7 @@ class PartyCommand(
     override fun execute(invocation: SimpleCommand.Invocation) {
 
         if (invocation.source() !is Player) {
-            invocation.source().sendMessage(text("<red>You have to be a player to do this."))
+            invocation.source().sendMessage(text("${Color.RED}You have to be a player to do this."))
             return
         }
 
@@ -78,21 +80,22 @@ class PartyCommand(
                     "info" -> {
                         try {
                             val party = api.getData().getParty(player.uniqueId)
-                            player.sendMessage(text("<gray>Party Info:"))
-                            player.sendMessage(text("<yellow>Owner: <gray>${party.membersList.first { it.role == PartyRole.OWNER }.name}"))
-                            player.sendMessage(text("<yellow>Members: <gray>${party.membersList.joinToString(", ") { "${it.name} (role: ${it.roleValue})" }}"))
+                            player.sendMessage(text("${Glyphs.BALLOONS} Your party"))
+                            player.sendMessage(text("${Glyphs.SPACE} <gray>Owner: <color:#38bdf8>${party.membersList.first { it.role == PartyRole.OWNER }.name}"))
+                            player.sendMessage(text("${Glyphs.SPACE} <gray>Members: <color:#38bdf8>${party.membersList.joinToString(", ") { it.name }}"))
 
                             player.sendMessage(Component.empty())
 
                             val settings = party.settings
-                            player.sendMessage(text("<yellow>Settings:"))
-                            player.sendMessage(text("<yellow>Public: <gray>${if (settings.isPrivate) "No" else "Yes"}"))
-                            player.sendMessage(text("<yellow>Invites: <gray>${if (settings.allowInvites) "Yes" else "No"}"))
+                            player.sendMessage(text("${Glyphs.SPACE}<white> Settings"))
+                            player.sendMessage(text("${Glyphs.SPACE} <gray>Public: <color:#38bdf8>${if (settings.isPrivate) "no" else "yes"}"))
+                            player.sendMessage(text("${Glyphs.SPACE} <gray>Invites: <color:#38bdf8>${if (settings.allowInvites) "enabled" else "disabled"}"))
+                            player.sendMessage(text("${Glyphs.SPACE} <gray>Chat: <color:#38bdf8>${if (settings.allowChatting) "enabled" else "disabled"}"))
                         } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
 
-                            if (exception.status.code == Status.Code.NOT_FOUND) player.sendMessage(text("<red>You are not part of any party."))
-                            else player.sendMessage(text("<red>Failed to fetch your party member data. Please call an administrator about this."))
+                            if (exception.status.code == Status.Code.NOT_FOUND) player.sendMessage(text("${Color.RED}You are not part of any party."))
+                            else player.sendMessage(text("${Color.RED}Failed to fetch your party member data. Please call an administrator about this."))
                         }
 
                     }
@@ -179,9 +182,9 @@ class PartyCommand(
     }
 
     private fun Player.sendHelp(alias: String) {
-        this.sendMessage(text("<gray>Party Commands:"))
+        this.sendMessage(text("${Glyphs.BALLOONS} Commands of Party"))
         help.forEach { (command, description) ->
-            this.sendMessage(text("<yellow>/$alias $command <dark_gray>-> <gray>$description"))
+            this.sendMessage(text("${Glyphs.SPACE} <gray>/$alias $command"))
         }
 
     }
