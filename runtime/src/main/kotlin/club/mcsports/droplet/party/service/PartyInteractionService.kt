@@ -490,7 +490,7 @@ class PartyInteractionService(
     private suspend fun Party.inviteMember(memberName: String, invitorName: String): Status {
         try {
             val invitedPlayer = playerApi.getOnlinePlayer(memberName)
-            val partyOwnerName = playerApi.getOnlinePlayer(this.ownerId.asUuid()).getName()
+            val partyOwnerName = membersList.firstOrNull() { it.role == PartyRole.OWNER }?.name ?: invitorName
             partyManager.inviteMemberToParty(memberName, invitorName, this)
 
             invitedPlayer.sendMessage(
