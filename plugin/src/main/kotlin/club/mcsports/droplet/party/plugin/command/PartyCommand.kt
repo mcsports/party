@@ -94,8 +94,8 @@ class PartyCommand(
                         } catch (exception: StatusException) {
                             logger.warn(exception.status.description)
 
-                            if (exception.status.code == Status.Code.NOT_FOUND) player.sendMessage(text("${Color.RED}You are not part of any party."))
-                            else player.sendMessage(text("${Color.RED}Failed to fetch your party member data. Please call an administrator about this."))
+                            if (exception.status.code == Status.Code.NOT_FOUND) player.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You are not part of any party."))
+                            else player.sendMessage(text("${Glyphs.BALLOONS + Color.RED} Failed to fetch your party member data. Please call an administrator about this."))
                         }
 
                     }
@@ -110,6 +110,10 @@ class PartyCommand(
 
                     "leave" -> {
                         api.getInteraction().memberLeaveParty(player.uniqueId)
+                    }
+
+                    else -> {
+                        player.sendHelp(alias)
                     }
                 }
             }
