@@ -60,7 +60,7 @@ class PartyInteractionService(
         offlinePlayers.addAll(request.invitedNamesList.mapNotNull { invitedName ->
             val inviteResult = party.inviteMember(invitedName, creatorName)
 
-            return@mapNotNull if (inviteResult.code != Status.Code.OK) playerApi.getOfflinePlayer(invitedName).getName()
+            return@mapNotNull if (inviteResult.code != Status.Code.OK) invitedName
             else null
         })
 
