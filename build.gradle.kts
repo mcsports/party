@@ -8,7 +8,7 @@ plugins {
 
 allprojects {
     group = "club.mcsports.droplet.party"
-    version = findProperty("version") ?: "1.0.0"
+    version = "1.0.0"
 
     repositories {
         mavenCentral()
