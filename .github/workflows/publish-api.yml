@@ -1,0 +1,36 @@
+name: Publish API
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Grant execute permission for Gradle wrapper
+        run: chmod +x ./gradlew
+
+      - name: Set COMMIT_HASH if on develop
+        if: github.ref == 'refs/heads/develop'
+        run: echo "COMMIT_HASH=${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: Publish package
+        run: ./gradlew publish
+        env:
+          REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
