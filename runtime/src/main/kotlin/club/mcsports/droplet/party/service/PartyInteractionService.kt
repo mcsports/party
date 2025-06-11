@@ -90,7 +90,7 @@ class PartyInteractionService(
 
         val partyMember = party.retrieveMember(executorName)
         if (partyMember.role != PartyRole.OWNER) {
-            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You don't have enough permissions to do delete the party."))
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You don't have enough permissions to delete the party."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to delete party: User $executorName isn't the party owner")
                 .log(logger).asRuntimeException()
@@ -247,7 +247,7 @@ class PartyInteractionService(
         }
 
         if (executingPartyMember.role == PartyRole.MEMBER) {
-            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You don't have enough permissions to do kick members."))
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You don't have enough permissions to kick members."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to kick member: User $executorName isn't permitted to do that")
                 .log(logger).asRuntimeException()
@@ -263,7 +263,7 @@ class PartyInteractionService(
         val partyMember = party.retrieveMember(memberName)
 
         if (executingPartyMember.roleValue < partyMember.roleValue) {
-            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You don't have enough permissions to do kick $memberName."))
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You don't have enough permissions to kick $memberName."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to kick member: User $executorName isn't permitted to kick higher role member $memberName")
                 .log(logger).asRuntimeException()
