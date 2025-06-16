@@ -64,39 +64,39 @@ interface InteractionApi {
         fun inviteMember(
             memberName: String,
             executor: UUID
-        )
+        ): CompletableFuture<Void>
 
         fun promoteMember(
             memberName: String,
             executor: UUID
-        )
+        ): CompletableFuture<Void>
 
         fun demoteMember(
             memberName: String,
             executor: UUID
-        )
+        ): CompletableFuture<Void>
 
         fun partyChat(
             executor: UUID,
             message: Component
-        )
+        ): CompletableFuture<Void>
 
         fun kickMember(
             memberName: String,
             executor: UUID
-        )
+        ): CompletableFuture<Void>
 
         fun acceptPartyInvite(
             invitorName: String,
             executor: UUID
-        )
+        ): CompletableFuture<Void>
 
         fun denyPartyInvite(
             invitorName: String,
             executor: UUID
-        )
+        ): CompletableFuture<Void>
 
-        fun deleteParty(executor: UUID)
-        fun memberLeaveParty(member: UUID)
+        fun deleteParty(executor: UUID): CompletableFuture<Void>
+        fun memberLeaveParty(member: UUID): CompletableFuture<Void>
     }
 }
