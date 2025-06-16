@@ -46,6 +46,7 @@ class PartyInteractionService(
             this.members.add(
                 partyMember {
                     this.name = creatorName
+                    this.uuid = creator.getUniqueId().toString()
                     this.role = PartyRole.OWNER
                     this.timeJoined = ProtobufTimestamp.fromLocalDateTime(LocalDateTime.now())
                 }
@@ -442,7 +443,7 @@ class PartyInteractionService(
                     .log(logger).asRuntimeException()
             }
 
-            partyManager.assignMemberToParty(executorName, PartyRole.MEMBER, party)
+            partyManager.assignMemberToParty(executorName, request.executorId.asUuid(), PartyRole.MEMBER, party)
             executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.GREEN}successfully</color> accepted $invitorName's party invite."))
             return handleInviteResponse { }
         }

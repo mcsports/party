@@ -18,10 +18,11 @@ class PartyManager {
     val parties = mutableMapOf<UUID, Party>()
     val informationHolders = mutableMapOf<String, PartyInformationHolder>()
 
-    fun assignMemberToParty(memberName: String, role: PartyRole, party: Party) {
+    fun assignMemberToParty(memberName: String, uuid: UUID, role: PartyRole, party: Party) {
         party.copy {
             this.members.add(partyMember {
                 this.name = memberName
+                this.uuid = uuid.toString()
                 this.role = role
                 this.timeJoined = ProtobufTimestamp.fromLocalDateTime(LocalDateTime.now())
             })
