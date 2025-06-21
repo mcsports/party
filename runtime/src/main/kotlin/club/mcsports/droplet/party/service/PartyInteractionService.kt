@@ -295,12 +295,6 @@ class PartyInteractionService(
         if (partyMember.role == PartyRole.OWNER) {
             val newOwner = removeMemberResult.name
             val newOwnerPlayer = newOwner.fetchPlayer()
-
-            val overwrittenParty = party.copy {
-                this.ownerId = newOwnerPlayer.getUniqueId().toString()
-            }
-
-            partyManager.parties[party.id.asUuid()] = overwrittenParty
             partyManager.transferOwnership(newOwner, true, party)
 
             newOwnerPlayer.sendMessage(text("${Glyphs.BALLOONS} The party owner ${Color.RED}left</color>. You were automatically promoted to party owner due to being in the party the longest."))
