@@ -301,7 +301,7 @@ class PartyInteractionService(
         }
 
         executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.RED}left</color> the party."))
-
+        party.announce(text("${Glyphs.BALLOONS} $executorName ${Color.RED}left</color> the party."))
         return leavePartyResponse { }
     }
 
@@ -437,6 +437,7 @@ class PartyInteractionService(
                     .log(logger).asRuntimeException()
             }
 
+            party.announce(text("${Glyphs.BALLOONS} $executorName ${Color.GREEN}joined</color> the party!"))
             partyManager.assignMemberToParty(executorName, request.executorId.asUuid(), PartyRole.MEMBER, party)
             executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.GREEN}successfully</color> accepted $invitorName's party invite."))
             return handleInviteResponse { }
@@ -497,6 +498,13 @@ class PartyInteractionService(
             return Status.OK
         } catch (exception: StatusException) {
             return exception.status
+        }
+    }
+
+    private suspend fun Party.announce(message: Component) {
+        membersList.map { it.name }.forEach { name ->
+            val loopPlayer = name.fetchPlayer()
+            loopPlayer.sendMessage(message)
         }
     }
 }
