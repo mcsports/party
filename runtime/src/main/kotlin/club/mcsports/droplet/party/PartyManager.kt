@@ -123,8 +123,8 @@ class PartyManager {
         }.also { updatedParty ->
             parties[updatedParty.id.asUuid()] = updatedParty
 
-            if (leave) informationHolder(memberName).partyId = null
-            else informationHolder(memberName).partyId = updatedParty.id.asUuid()
+            if (leave) informationHolder(oldOwner.name).partyId = null
+            else informationHolder(oldOwner.name).partyId = updatedParty.id.asUuid()
         }
 
     }
