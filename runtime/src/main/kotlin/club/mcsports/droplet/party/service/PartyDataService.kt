@@ -17,7 +17,7 @@ class PartyDataService(private val partyManager: PartyManager) : PartyDataGrpcKt
 
     private val logger = LogManager.getLogger(PartyDataService::class.java)
     override suspend fun getParty(request: PartyRequest): PartyResponse {
-        val memberName = request.memberId.fetchPlayer().getName()
+        val memberName = request.memberId.fetchPlayer()?.getName() ?: throw Status.NOT_FOUND.withDescription("Failed to fetch user data: No user to identify with ${request.memberId}").log(logger).asRuntimeException()
         val informationHolder = partyManager.informationHolder(memberName)
 
         val partyId = informationHolder.partyId
@@ -38,7 +38,7 @@ class PartyDataService(private val partyManager: PartyManager) : PartyDataGrpcKt
     }
 
     override suspend fun getMemberRole(request: MemberRoleRequest): MemberRoleResponse {
-        val player = request.memberId.fetchPlayer()
+        val player = request.memberId.fetchPlayer() ?: throw Status.NOT_FOUND.withDescription("Failed to fetch user data: No user to identify with ${request.memberId}").log(logger).asRuntimeException()
         val playerName = player.getName()
 
         val party = partyManager.parties[partyManager.informationHolder(playerName).partyId] ?: run {

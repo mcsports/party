@@ -27,7 +27,7 @@ class PartyInteractionService(
     private val logger = LogManager.getLogger(PartyInteractionService::class.java)
 
     override suspend fun createParty(request: CreatePartyRequest): CreatePartyResponse {
-        val creator = request.creatorId.fetchPlayer()
+        val creator = request.creatorId.fetchPlayer() ?: handleUserFetchingFailed(request.creatorId)
         val creatorName = creator.getName()
 
         if (partyManager.informationHolder(creatorName).partyId != null) {
@@ -83,7 +83,7 @@ class PartyInteractionService(
     }
 
     override suspend fun deleteParty(request: DeletePartyRequest): DeletePartyResponse {
-        val executor = request.executorId.fetchPlayer()
+        val executor = request.executorId.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
         val executorName = executor.getName()
 
         val party = retrieveParty(executorName)
@@ -102,7 +102,7 @@ class PartyInteractionService(
             partyManager.informationHolder(name).partyId = null
 
             val loopPlayer = name.fetchPlayer()
-            loopPlayer.sendMessage(text("${Glyphs.BALLOONS + Color.RED} The party you were in got deleted."))
+            loopPlayer?.sendMessage(text("${Glyphs.BALLOONS + Color.RED} The party you were in got deleted."))
         }
 
         party.membersList.clear()
@@ -112,7 +112,7 @@ class PartyInteractionService(
 
     private val gsonSerializer = GsonComponentSerializer.gson()
     override suspend fun chat(request: ChatRequest): ChatResponse {
-        val executor = request.executorId.fetchPlayer()
+        val executor = request.executorId.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
         val executorName = executor.getName()
 
         val party = retrieveParty(executorName)
@@ -151,7 +151,7 @@ class PartyInteractionService(
         party.membersList.map { it.name }.forEach { name ->
             val loopPlayer = name.fetchPlayer()
 
-            loopPlayer.sendMessage(
+            loopPlayer?.sendMessage(
                 text("${Glyphs.BALLOONS} Party-Chat").append(Component.space()).append(senderInformationComponent.append(text("<dark_gray>: ")).append(messageComponent)))
         }
 
@@ -160,7 +160,7 @@ class PartyInteractionService(
 
     override suspend fun invitePlayer(request: InvitePlayerRequest): InvitePlayerResponse {
         val executorId = request.executorId
-        val executor = executorId.fetchPlayer()
+        val executor = executorId.fetchPlayer() ?: handleUserFetchingFailed(executorId)
         val executorName = executor.getName()
 
         if (partyManager.informationHolder(executorName).partyId == null) {
@@ -231,7 +231,7 @@ class PartyInteractionService(
     }
 
     override suspend fun kickMember(request: KickMemberRequest): KickMemberResponse {
-        val executor = request.executorId.fetchPlayer()
+        val executor = request.executorId.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
         val executorName = executor.getName()
 
         val party = retrieveParty(executorName)
@@ -271,7 +271,10 @@ class PartyInteractionService(
         }
 
         partyManager.removeMemberFromParty(memberName, party)
-        val memberPlayer = memberName.fetchPlayer()
+        val memberPlayer = memberName.fetchPlayer() ?: run {
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED}It seems like $memberName is offline"))
+            handleUserFetchingFailed(request.executorId)
+        }
 
         executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.GREEN}successfully</color> removed ${memberPlayer.getName()} from the party."))
         memberPlayer.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You've got kicked out of the party."))
@@ -280,7 +283,7 @@ class PartyInteractionService(
     }
 
     override suspend fun leaveParty(request: LeavePartyRequest): LeavePartyResponse {
-        val executor = request.executorId.fetchPlayer()
+        val executor = request.executorId.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
         val executorName = executor.getName()
 
         val party = retrieveParty(executorName)
@@ -294,7 +297,7 @@ class PartyInteractionService(
 
         if (partyMember.role == PartyRole.OWNER) {
             val newOwner = removeMemberResult.name
-            val newOwnerPlayer = newOwner.fetchPlayer()
+            val newOwnerPlayer = newOwner.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
             partyManager.transferOwnership(newOwner, true, party)
 
             newOwnerPlayer.sendMessage(text("${Glyphs.BALLOONS} The party owner ${Color.RED}left</color>. You were automatically promoted to party owner due to being in the party the longest."))
@@ -307,7 +310,7 @@ class PartyInteractionService(
 
     private val promoteConfirmation = mutableListOf<UUID>()
     override suspend fun promoteMember(request: PromoteMemberRequest): PromoteMemberResponse {
-        val executor = request.executorId.fetchPlayer()
+        val executor = request.executorId.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
         val executorName = executor.getName()
 
         val party = retrieveParty(executorName)
@@ -321,7 +324,10 @@ class PartyInteractionService(
         }
 
         val memberName = request.memberName
-        val member = memberName.fetchPlayer()
+        val member = memberName.fetchPlayer() ?: run {
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED}It seems like $memberName is offline"))
+            handleUserFetchingFailed(request.executorId)
+        }
 
         if (memberName.equals(executorName, true)) {
             executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You can't promote yourself."))
@@ -360,7 +366,7 @@ class PartyInteractionService(
     }
 
     override suspend fun demoteMember(request: DemoteMemberRequest): DemoteMemberResponse {
-        val executor = request.executorId.fetchPlayer()
+        val executor = request.executorId.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
         val executorName = executor.getName()
 
         val party = retrieveParty(executorName)
@@ -374,7 +380,10 @@ class PartyInteractionService(
         }
 
         val memberName = request.memberName
-        val member = memberName.fetchPlayer()
+        val member = memberName.fetchPlayer() ?: run {
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED}It seems like $memberName is offline"))
+            handleUserFetchingFailed(request.executorId)
+        }
 
         if (memberName.equals(executorName, true)) {
             executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You can't demote yourself."))
@@ -407,7 +416,7 @@ class PartyInteractionService(
     }
 
     override suspend fun handleInvite(request: HandleInviteRequest): HandleInviteResponse {
-        val executor = request.executorId.fetchPlayer()
+        val executor = request.executorId.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
         val executorName = executor.getName()
 
         val invitorName = request.invitorName
@@ -449,7 +458,7 @@ class PartyInteractionService(
     }
 
     private suspend fun retrieveParty(memberName: String): Party {
-        val player = memberName.fetchPlayer()
+        val player = memberName.fetchPlayer() ?: handleUserFetchingFailed(memberName)
         val partyId = partyManager.informationHolder(memberName).partyId ?: run {
             player.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You aren't in a party!"))
 
@@ -504,7 +513,11 @@ class PartyInteractionService(
     private suspend fun Party.announce(message: Component) {
         membersList.map { it.name }.forEach { name ->
             val loopPlayer = name.fetchPlayer()
-            loopPlayer.sendMessage(message)
+            loopPlayer?.sendMessage(message)
         }
+    }
+
+    private fun handleUserFetchingFailed(string: String): Nothing {
+        throw Status.NOT_FOUND.withDescription("Failed to fetch user data: No user to identify with $string").log(logger).asRuntimeException()
     }
 }
