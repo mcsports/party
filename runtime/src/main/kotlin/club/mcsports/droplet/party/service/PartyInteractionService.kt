@@ -311,23 +311,10 @@ class PartyInteractionService(
 
         if (partyMember.role == PartyRole.OWNER) {
             val newOwner = removeMemberResult.name
-            val newOwnerPlayer = newOwner.fetchPlayer() ?: run {
-                party.membersList.toList().forEach { loopMember ->
-                    val name = loopMember.name
-                    partyManager.informationHolder(name).partyId = null
-
-                    val loopPlayer = name.fetchPlayer()
-                    loopPlayer?.sendMessage(text("${Glyphs.BALLOONS + Color.RED} The party you were in got deleted."))
-                }
-
-                party.membersList.clear()
-                partyManager.parties.remove(party.id.asUuid())
-
-                handleUserFetchingFailed(request.executorId)
-            }
+            val newOwnerPlayer = newOwner.fetchPlayer()
             partyManager.transferOwnership(newOwner, true, party)
 
-            newOwnerPlayer.sendMessage(text("${Glyphs.BALLOONS} The party owner ${Color.RED}left</color>. You were automatically promoted to party owner due to being in the party the longest."))
+            newOwnerPlayer?.sendMessage(text("${Glyphs.BALLOONS} The party owner ${Color.RED}left</color>. You were automatically promoted to party owner due to being in the party the longest."))
         }
 
         executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.RED}left</color> the party."))
