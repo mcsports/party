@@ -119,7 +119,7 @@ class PartyManager {
             this.members.clear()
             this.members.addAll(tempMembers)
 
-            this.ownerId = memberName.fetchPlayer()?.getUniqueId().toString()
+            this.ownerId = newOwner.uuid
         }.also { updatedParty ->
             parties[updatedParty.id.asUuid()] = updatedParty
 
