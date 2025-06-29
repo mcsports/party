@@ -219,14 +219,14 @@ class PartyInteractionService(
         }
 
         if(invitedMemberName.fetchPlayer() == null) {
-            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} The player you're trying to invite is offline."))
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} $invitedMemberName is offline."))
 
             throw Status.NOT_FOUND.withDescription("Failed to invite member: User $invitedMemberName is offline")
                 .log(logger).asRuntimeException()
         }
 
         if (party.invitesList.any { invite -> invite.invitedName == invitedMemberName }) {
-            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} The player you're trying to invite already has a pending invite for your party."))
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} $invitedMemberName already has a pending invite for your party."))
 
             throw Status.ALREADY_EXISTS.withDescription("Failed to invite member: User $invitedMemberName already has a pending invite for party $partyId")
                 .log(logger).asRuntimeException()
@@ -266,7 +266,7 @@ class PartyInteractionService(
         }
 
         if (party.membersList.none { it.name == memberName }) {
-            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} The given player isn't part of your party."))
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} $memberName isn't part of your party."))
 
             throw Status.NOT_FOUND.withDescription("Failed to kick member: User $memberName isn't part of party $partyId")
                 .log(logger).asRuntimeException()
