@@ -41,7 +41,7 @@ class PartyVelocityPlugin() {
             server.commandManager.metaBuilder("party").aliases("p").plugin(this).build(),
             PartyCommand(api, logger)
         )
-        server.eventManager.register(this, PlayerDisconnectListener(api, logger))
+        server.eventManager.register(this, PlayerDisconnectListener(api, logger, server))
         logger.info("Initializing mcsports-party")
     }
 
