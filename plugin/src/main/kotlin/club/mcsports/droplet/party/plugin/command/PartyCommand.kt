@@ -126,7 +126,7 @@ class PartyCommand(
 
             CoroutineScope(Dispatchers.IO).launch {
                 when (args[0].lowercase()) {
-                    "invite" -> {
+                    "invite", "add" -> {
                         try {
                             api.getInteraction().inviteMember(targetName, player.uniqueId)
                         } catch (exception: StatusException) {
@@ -150,7 +150,7 @@ class PartyCommand(
                         }
                     }
 
-                    "kick" -> {
+                    "kick", "remove" -> {
                         try {
                             api.getInteraction().kickMember(targetName, player.uniqueId)
                         } catch (exception: StatusException) {
