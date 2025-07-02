@@ -174,6 +174,14 @@ class PartyCommand(
                         }
                     }
 
+                    "join" -> {
+                        try {
+                            api.getInteraction().memberJoinParty(targetName, player.uniqueId)
+                        } catch (exception: StatusException) {
+                            logger.warn(exception.status.description)
+                        }
+                    }
+
                     else -> {
                         player.sendHelp(alias)
                     }
