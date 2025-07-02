@@ -116,7 +116,7 @@ class PartyInteractionApiFutureImpl(
         ).toCompletable().thenApply { null }
     }
 
-    override fun memberJoinParty(member: UUID, partyOwnerName: String): CompletableFuture<Void> {
+    override fun memberJoinParty(partyOwnerName: String, member: UUID): CompletableFuture<Void> {
         return api.joinParty(
             joinPartyRequest {
                 this.executorId = member.toString()

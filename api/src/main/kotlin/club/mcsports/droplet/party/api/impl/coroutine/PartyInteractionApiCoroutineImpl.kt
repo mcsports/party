@@ -113,7 +113,7 @@ class PartyInteractionApiCoroutineImpl(
         )
     }
 
-    override suspend fun memberJoinParty(member: UUID, partyOwnerName: String) {
+    override suspend fun memberJoinParty(partyOwnerName: String, member: UUID) {
         api.joinParty(
             joinPartyRequest {
                 this.executorId = member.toString()
