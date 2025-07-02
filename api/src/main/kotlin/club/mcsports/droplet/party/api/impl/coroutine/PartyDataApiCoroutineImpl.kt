@@ -2,11 +2,7 @@ package club.mcsports.droplet.party.api.impl.coroutine
 
 import app.simplecloud.droplet.api.auth.AuthCallCredentials
 import club.mcsports.droplet.party.api.DataApi
-import com.mcsports.party.v1.Party
-import com.mcsports.party.v1.PartyDataGrpcKt
-import com.mcsports.party.v1.PartyRole
-import com.mcsports.party.v1.memberRoleRequest
-import com.mcsports.party.v1.partyRequest
+import com.mcsports.party.v1.*
 import io.grpc.ManagedChannel
 import java.util.UUID
 
@@ -24,12 +20,12 @@ class PartyDataApiCoroutineImpl(
         ).party
     }
 
-    override suspend fun getMemberRole(member: UUID): PartyRole {
-        return api.getMemberRole(
-            memberRoleRequest {
+    override suspend fun getMember(member: UUID): PartyMember {
+        return api.getMember(
+            memberRequest {
                 this.memberId = member.toString()
             }
-        ).role
+        ).member
     }
 
 }
