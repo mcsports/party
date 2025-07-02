@@ -3,12 +3,12 @@ package club.mcsports.droplet.party.service
 import club.mcsports.droplet.party.PartyManager
 import club.mcsports.droplet.party.extension.fetchPlayer
 import club.mcsports.droplet.party.extension.log
-import com.mcsports.party.v1.MemberRoleRequest
-import com.mcsports.party.v1.MemberRoleResponse
+import com.mcsports.party.v1.MemberRequest
+import com.mcsports.party.v1.MemberResponse
 import com.mcsports.party.v1.PartyDataGrpcKt
 import com.mcsports.party.v1.PartyRequest
 import com.mcsports.party.v1.PartyResponse
-import com.mcsports.party.v1.memberRoleResponse
+import com.mcsports.party.v1.memberResponse
 import com.mcsports.party.v1.partyResponse
 import io.grpc.Status
 import org.apache.logging.log4j.LogManager
@@ -37,7 +37,7 @@ class PartyDataService(private val partyManager: PartyManager) : PartyDataGrpcKt
         }
     }
 
-    override suspend fun getMemberRole(request: MemberRoleRequest): MemberRoleResponse {
+    override suspend fun getMember(request: MemberRequest): MemberResponse {
         val player = request.memberId.fetchPlayer() ?: throw Status.NOT_FOUND.withDescription("Failed to fetch user data: No user to identify with ${request.memberId}").log(logger).asRuntimeException()
         val playerName = player.getName()
 
@@ -52,8 +52,8 @@ class PartyDataService(private val partyManager: PartyManager) : PartyDataGrpcKt
                 .log(logger).asRuntimeException()
         }
 
-        return memberRoleResponse {
-            this.role = partyMember.role
+        return memberResponse {
+            this.member = partyMember
         }
     }
 
