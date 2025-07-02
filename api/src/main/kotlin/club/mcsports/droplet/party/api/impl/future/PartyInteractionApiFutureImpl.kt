@@ -16,6 +16,7 @@ import com.mcsports.party.v1.PartyInteractionGrpc
 import com.mcsports.party.v1.PartySettings
 import com.mcsports.party.v1.PromoteMemberRequest
 import com.mcsports.party.v1.handleInviteRequest
+import com.mcsports.party.v1.joinPartyRequest
 import io.grpc.ManagedChannel
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
@@ -112,6 +113,15 @@ class PartyInteractionApiFutureImpl(
             LeavePartyRequest.newBuilder()
                 .setExecutorId(member.toString())
                 .build()
+        ).toCompletable().thenApply { null }
+    }
+
+    override fun memberJoinParty(member: UUID, partyOwnerName: String): CompletableFuture<Void> {
+        return api.joinParty(
+            joinPartyRequest {
+                this.executorId = member.toString()
+                this.partyOwnerName = partyOwnerName
+            }
         ).toCompletable().thenApply { null }
     }
 

@@ -477,6 +477,29 @@ class PartyInteractionService(
         return handleInviteResponse { }
     }
 
+    override suspend fun joinParty(request: JoinPartyRequest): JoinPartyResponse {
+        val executor = request.executorId.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
+        val executorName = executor.getName()
+
+        val partyOwnerName = request.partyOwnerName
+        val party = partyManager.parties[partyManager.informationHolder(partyOwnerName).partyId] ?: run {
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} $partyOwnerName isn't part of a party."))
+            throw Status.FAILED_PRECONDITION.withDescription("Failed to retrieve party: User $partyOwnerName isn't part of any party")
+                .log(logger).asRuntimeException()
+        }
+
+        if(party.settings.isPrivate) {
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} $partyOwnerName's party is private."))
+            throw Status.PERMISSION_DENIED.withDescription("Failed to join party: Party ${party.id} is private")
+                .log(logger).asRuntimeException()
+        }
+
+        party.announce(text("${Glyphs.BALLOONS} $executorName ${Color.GREEN}joined</color> the party!"))
+        partyManager.assignMemberToParty(executorName, request.executorId.asUuid(), PartyRole.MEMBER, party)
+        executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.GREEN}successfully</color> joined $partyOwnerName's party."))
+        return joinPartyResponse { }
+    }
+
     private suspend fun retrieveParty(memberName: String): Party {
         val player = memberName.fetchPlayer() ?: handleUserFetchingFailed(memberName)
         val partyId = partyManager.informationHolder(memberName).partyId ?: run {

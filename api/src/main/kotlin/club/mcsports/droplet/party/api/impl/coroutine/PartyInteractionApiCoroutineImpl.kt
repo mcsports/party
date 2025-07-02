@@ -12,6 +12,7 @@ import com.mcsports.party.v1.deletePartyRequest
 import com.mcsports.party.v1.demoteMemberRequest
 import com.mcsports.party.v1.handleInviteRequest
 import com.mcsports.party.v1.invitePlayerRequest
+import com.mcsports.party.v1.joinPartyRequest
 import com.mcsports.party.v1.kickMemberRequest
 import com.mcsports.party.v1.leavePartyRequest
 import com.mcsports.party.v1.promoteMemberRequest
@@ -108,6 +109,15 @@ class PartyInteractionApiCoroutineImpl(
         api.leaveParty(
             leavePartyRequest {
                 this.executorId = member.toString()
+            }
+        )
+    }
+
+    override suspend fun memberJoinParty(member: UUID, partyOwnerName: String) {
+        api.joinParty(
+            joinPartyRequest {
+                this.executorId = member.toString()
+                this.partyOwnerName = partyOwnerName
             }
         )
     }
