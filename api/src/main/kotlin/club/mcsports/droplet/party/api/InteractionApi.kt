@@ -55,6 +55,11 @@ interface InteractionApi {
             member: UUID
         )
 
+        suspend fun modifyPartySettings(
+            executor: UUID,
+            partySettings: PartySettings
+        )
+
         suspend fun deleteParty(executor: UUID)
         suspend fun memberLeaveParty(member: UUID)
     }
@@ -104,6 +109,11 @@ interface InteractionApi {
         fun memberJoinParty(
             partyOwnerName: String,
             member: UUID
+        ): CompletableFuture<Void>
+
+        fun modifyPartySettings(
+            executor: UUID,
+            partySettings: PartySettings
         ): CompletableFuture<Void>
 
         fun deleteParty(executor: UUID): CompletableFuture<Void>
