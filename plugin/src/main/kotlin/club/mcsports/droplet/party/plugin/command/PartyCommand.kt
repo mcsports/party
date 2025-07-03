@@ -57,11 +57,6 @@ class PartyCommand(
             return
         }
 
-        if (args.isEmpty()) {
-            player.sendHelp(alias)
-            return
-        }
-
         if (args.size == 1) {
             CoroutineScope(Dispatchers.IO).launch {
                 when (args[0].lowercase()) {
@@ -112,9 +107,7 @@ class PartyCommand(
                         api.getInteraction().memberLeaveParty(player.uniqueId)
                     }
 
-                    else -> {
-                        player.sendHelp(alias)
-                    }
+                    else -> player.sendHelp(alias)
                 }
             }
 
@@ -182,14 +175,46 @@ class PartyCommand(
                         }
                     }
 
-                    else -> {
-                        player.sendHelp(alias)
-                    }
+                    else -> player.sendHelp(alias)
                 }
             }
 
             return
         }
+
+        if(args.size == 3) {
+            when (args[0].lowercase()) {
+                "set" -> {
+                    val setting = args[1].lowercase()
+                    val value = args[2].toBoolean()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val settings = api.getData().getParty(player.uniqueId).settings.toBuilder()
+
+                            when (setting) {
+                                "private" -> settings.isPrivate = value
+                                "invites" -> settings.allowInvites = value
+                                "chat" -> settings.allowChatting = value
+
+                                else -> {
+                                    player.sendMessage(text("${Glyphs.BALLOONS + Color.RED} The setting $setting doesn't exist."))
+                                    return@launch
+                                }
+                            }
+
+                            api.getInteraction().modifyPartySettings(player.uniqueId, settings.build())
+                        } catch (exception: StatusException) {
+                            logger.warn(exception.status.description)
+                        }
+                    }
+                }
+
+                else -> player.sendHelp(alias)
+            }
+            return
+        }
+
+        player.sendHelp(alias)
 
     }
 
