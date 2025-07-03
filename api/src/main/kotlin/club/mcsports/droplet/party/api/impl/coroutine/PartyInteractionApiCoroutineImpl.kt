@@ -3,19 +3,7 @@ package club.mcsports.droplet.party.api.impl.coroutine
 import app.simplecloud.droplet.api.auth.AuthCallCredentials
 import club.mcsports.droplet.party.api.InteractionApi
 import com.mcsports.friend.v1.adventureComponent
-import com.mcsports.party.v1.Party
-import com.mcsports.party.v1.PartyInteractionGrpcKt
-import com.mcsports.party.v1.PartySettings
-import com.mcsports.party.v1.chatRequest
-import com.mcsports.party.v1.createPartyRequest
-import com.mcsports.party.v1.deletePartyRequest
-import com.mcsports.party.v1.demoteMemberRequest
-import com.mcsports.party.v1.handleInviteRequest
-import com.mcsports.party.v1.invitePlayerRequest
-import com.mcsports.party.v1.joinPartyRequest
-import com.mcsports.party.v1.kickMemberRequest
-import com.mcsports.party.v1.leavePartyRequest
-import com.mcsports.party.v1.promoteMemberRequest
+import com.mcsports.party.v1.*
 import io.grpc.ManagedChannel
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
@@ -118,6 +106,15 @@ class PartyInteractionApiCoroutineImpl(
             joinPartyRequest {
                 this.executorId = member.toString()
                 this.partyOwnerName = partyOwnerName
+            }
+        )
+    }
+
+    override suspend fun modifyPartySettings(executor: UUID, partySettings: PartySettings) {
+        api.modifyPartySettings(
+            modifyPartySettingsRequest {
+                this.executorId = executor.toString()
+                this.settings = partySettings
             }
         )
     }

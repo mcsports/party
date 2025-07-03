@@ -500,6 +500,44 @@ class PartyInteractionService(
         return joinPartyResponse { }
     }
 
+    override suspend fun modifyPartySettings(request: ModifyPartySettingsRequest): ModifyPartySettingsResponse {
+        val executor = request.executorId.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
+        val executorName = executor.getName()
+
+        val party = retrieveParty(executorName)
+        if (!party.ownerId.equals(request.executorId, true)) {
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You don't have enough permissions to demote members."))
+
+            throw Status.PERMISSION_DENIED.withDescription("Failed to modify settings: User $executorName isn't permitted to do that.")
+                .log(logger).asRuntimeException()
+        }
+
+        if(request.settings == party.settings) {
+            executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} The party settings you tried to apply are already set."))
+            return modifyPartySettingsResponse { }
+        }
+
+        if(request.settings.isPrivate != party.settings.isPrivate) {
+            val decision = if (request.settings.isPrivate) "private" else "public"
+            executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.GREEN}successfully</color> changed the party's privacy to ${Color.BLUE}$decision</color>."))
+        }
+
+        if(request.settings.allowInvites != party.settings.allowInvites) {
+            val decision = if (request.settings.allowInvites) "enabled" else "disabled"
+            executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.GREEN}successfully</color> $decision party invites."))
+        }
+
+        if(request.settings.allowChatting != party.settings.allowChatting) {
+            val decision = if (request.settings.allowChatting) "enabled" else "disabled"
+            executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.GREEN}successfully</color> $decision chatting."))
+        }
+
+        party.copy {
+            this.settings = request.settings
+        }.also { updatedParty -> partyManager.parties[party.id.asUuid()] = updatedParty }
+        return modifyPartySettingsResponse { }
+    }
+
     private suspend fun retrieveParty(memberName: String): Party {
         val player = memberName.fetchPlayer() ?: handleUserFetchingFailed(memberName)
         val partyId = partyManager.informationHolder(memberName).partyId ?: run {
@@ -532,7 +570,7 @@ class PartyInteractionService(
     private suspend fun Party.inviteMember(memberName: String, invitorName: String): Status {
         try {
             val invitedPlayer = playerApi.getOnlinePlayer(memberName)
-            val partyOwnerName = membersList.firstOrNull() { it.role == PartyRole.OWNER }?.name ?: invitorName
+            val partyOwnerName = membersList.firstOrNull { it.role == PartyRole.OWNER }?.name ?: invitorName
             partyManager.inviteMemberToParty(memberName, invitorName, this)
 
             invitedPlayer.sendMessage(

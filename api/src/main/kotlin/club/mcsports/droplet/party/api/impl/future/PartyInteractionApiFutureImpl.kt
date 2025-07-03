@@ -8,15 +8,16 @@ import com.mcsports.party.v1.ChatRequest
 import com.mcsports.party.v1.CreatePartyRequest
 import com.mcsports.party.v1.DeletePartyRequest
 import com.mcsports.party.v1.DemoteMemberRequest
+import com.mcsports.party.v1.HandleInviteRequest
 import com.mcsports.party.v1.InvitePlayerRequest
+import com.mcsports.party.v1.JoinPartyRequest
 import com.mcsports.party.v1.KickMemberRequest
 import com.mcsports.party.v1.LeavePartyRequest
+import com.mcsports.party.v1.ModifyPartySettingsRequest
 import com.mcsports.party.v1.Party
 import com.mcsports.party.v1.PartyInteractionGrpc
 import com.mcsports.party.v1.PartySettings
 import com.mcsports.party.v1.PromoteMemberRequest
-import com.mcsports.party.v1.handleInviteRequest
-import com.mcsports.party.v1.joinPartyRequest
 import io.grpc.ManagedChannel
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
@@ -118,20 +119,29 @@ class PartyInteractionApiFutureImpl(
 
     override fun memberJoinParty(partyOwnerName: String, member: UUID): CompletableFuture<Void> {
         return api.joinParty(
-            joinPartyRequest {
-                this.executorId = member.toString()
-                this.partyOwnerName = partyOwnerName
-            }
+            JoinPartyRequest.newBuilder()
+                .setExecutorId(member.toString())
+                .setPartyOwnerName(partyOwnerName)
+                .build()
+        ).toCompletable().thenApply { null }
+    }
+
+    override fun modifyPartySettings(executor: UUID, partySettings: PartySettings): CompletableFuture<Void> {
+        return api.modifyPartySettings(
+            ModifyPartySettingsRequest.newBuilder()
+                .setExecutorId(executor.toString())
+                .setSettings(partySettings)
+                .build()
         ).toCompletable().thenApply { null }
     }
 
     private fun handleInvite(invitorName: String, executor: UUID, accepted: Boolean): CompletableFuture<Void> {
         return api.handleInvite(
-            handleInviteRequest {
-                this.executorId = executor.toString()
-                this.invitorName = invitorName
-                this.accepted = accepted
-            }
+            HandleInviteRequest.newBuilder()
+                .setExecutorId(executor.toString())
+                .setInvitorName(invitorName)
+                .setAccepted(accepted)
+                .build()
         ).toCompletable().thenApply { null }
     }
 }
