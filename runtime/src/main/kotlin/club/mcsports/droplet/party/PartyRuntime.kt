@@ -9,6 +9,9 @@ import app.simplecloud.droplet.player.api.PlayerApiSingleton
 import build.buf.gen.simplecloud.controller.v1.ControllerDropletServiceGrpcKt
 import club.mcsports.droplet.party.controller.Attacher
 import club.mcsports.droplet.party.launcher.PartyStartCommand
+import club.mcsports.droplet.party.repository.InviteRepository
+import club.mcsports.droplet.party.repository.PartyRepository
+import club.mcsports.droplet.party.repository.PlayerRepository
 import club.mcsports.droplet.party.service.PartyDataService
 import club.mcsports.droplet.party.service.PartyInteractionService
 import io.grpc.ManagedChannelBuilder
@@ -35,7 +38,9 @@ class PartyRuntime(
     private val pubSubClient = controllerApi.getPubSubClient()
     private val callCredentials = AuthCallCredentials(args.authSecret)
 
-    private val partyManager = PartyManager()
+    private val partyRepository: PartyRepository = PartyRepository()
+    private val playerRepository: PlayerRepository = PlayerRepository(partyRepository)
+    private val inviteRepository: InviteRepository = InviteRepository(playerRepository, partyRepository)
 
     private val server = createGrpcServer()
     private val channel =
@@ -76,8 +81,8 @@ class PartyRuntime(
 
     private fun createGrpcServer(): Server {
         return ServerBuilder.forPort(args.grpcPort)
-            .addService(PartyDataService(partyManager))
-            .addService(PartyInteractionService(partyManager, playerApi))
+            .addService(PartyDataService(playerRepository))
+            .addService(PartyInteractionService(playerRepository, partyRepository, inviteRepository))
             .intercept(AuthSecretInterceptor(args.grpcHost, args.authorizationPort))
             .build()
     }

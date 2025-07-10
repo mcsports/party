@@ -28,3 +28,12 @@ suspend fun String.fetchPlayer(): CloudPlayer? {
         throw exception
     }
 }
+
+suspend fun UUID.fetchPlayer(): CloudPlayer? {
+    try {
+        return playerApi.getOnlinePlayer(this)
+    } catch (exception: StatusException) {
+        if (exception.status.code == Status.Code.NOT_FOUND) return null
+        throw exception
+    }
+}
