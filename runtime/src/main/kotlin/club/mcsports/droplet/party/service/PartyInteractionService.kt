@@ -464,7 +464,7 @@ class PartyInteractionService(
         val invitesList = executorPartyPlayer.invites
         val partyId = invitesList[invitorName]
 
-        val party = partyRepository.getParty(partyId ?: run {
+        var party = partyRepository.getParty(partyId ?: run {
             executor.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You haven't been invited by $invitorName."))
             throw Status.NOT_FOUND.withDescription("Failed to handle invite: User $executorName wasn't invited by $invitorName")
                 .log(logger).asRuntimeException()
@@ -475,6 +475,8 @@ class PartyInteractionService(
             throw Status.NOT_FOUND.withDescription("Failed to handle invite: Party $partyId wasn't found")
                 .log(logger).asRuntimeException()
         }
+
+        party = inviteRepository.deleteInvite(executorName, party)
 
         if (request.accepted) {
             if (executorPartyPlayer.partyId != null) {
@@ -490,8 +492,7 @@ class PartyInteractionService(
             return handleInviteResponse { }
         }
 
-        inviteRepository.deleteInvite(executorName, party)
-        executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.RED}denied $invitorName's party invite."))
+        executor.sendMessage(text("${Glyphs.BALLOONS} You ${Color.RED}denied</color> $invitorName's party invite."))
         return handleInviteResponse { }
     }
 

@@ -121,18 +121,18 @@ class InviteRepository(
      * @param name the name of the player that got invited
      * @param party the party the player got invited to
      *
-     * @return the party invite that got deleted
+     * @return the updated party object
      *
      * @throws Status.NOT_FOUND if the player has no pending invite for the party
      */
-    fun deleteInvite(name: String, party: Party): PartyInvite {
+    fun deleteInvite(name: String, party: Party): Party {
         val invite = party.invitesList.firstOrNull { invite -> invite.invitedName.equals(name, true) }
             ?: throw Status.NOT_FOUND.withDescription("Failed to delete invite: User $name has no pending invite for party ${party.id}")
                 .log(logger).asRuntimeException()
 
         val player = playerRepository.getPlayer(name)
 
-        party.copy {
+        return party.copy {
             val tempInvites = this.invites.toMutableList()
             tempInvites.remove(invite)
 
