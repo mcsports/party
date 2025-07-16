@@ -102,10 +102,10 @@ class PlayerRepository(
      * @param name the name of the player
      * @param role the role the player should get
      *
-     * @return true if the role was changed at all, false otherwise
+     * @return true if the role was changed at all, false otherwise; paired with the party object
      * @throws Status.NOT_FOUND if the player isn't part of any party
      */
-    fun updateRole(name: String, role: PartyRole): Boolean {
+    fun updateRole(name: String, role: PartyRole): Pair<Boolean, Party> {
         val party = getParty(name)
             ?: throw Status.NOT_FOUND.withDescription("Failed to get party: $name isn't part of any party")
                 .log(logger).asRuntimeException()
@@ -114,7 +114,7 @@ class PlayerRepository(
             val tempMembers = this.members.toMutableList()
 
             val partyMember = party.membersList.first { it.name == name }
-            if (partyMember.role == role) return false
+            if (partyMember.role == role) return false to party
 
             partyMember.copy {
                 this.role = role
@@ -123,12 +123,13 @@ class PlayerRepository(
                 tempMembers.add(updatedMember)
             }
 
+            if(role == PartyRole.OWNER) this.ownerId = partyMember.uuid
+
             this.members.clear()
             this.members.addAll(tempMembers)
         }.also { updatedParty ->
             partyRepository.updateParty(updatedParty)
+            return true to updatedParty
         }
-
-        return true
     }
 }
