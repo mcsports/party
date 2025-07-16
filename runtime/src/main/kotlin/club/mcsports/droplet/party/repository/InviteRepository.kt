@@ -103,6 +103,7 @@ class InviteRepository(
             val tempInvites = this.invites.toMutableList()
 
             tempInvites.addAll(inviteResults.mapNotNull { (name, inviteResult) ->
+                playerRepository.getPlayer(name).invites[invitorName] = this.id.asUuid()
                 return@mapNotNull inviteResult.invite
             })
 
