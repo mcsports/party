@@ -45,24 +45,29 @@ class PartyInteractionService(
 
         val invitePlayers = inviteRepository.invitePlayers(request.invitedNamesList.toSet(), creatorName)
         val invitedPlayerNames =
-            invitePlayers.first.filter { entry -> entry.value.status.code == Status.Code.OK }.map { it.key }
-        val notInvitedPlayerNames =
-            invitePlayers.first.map { it.key }.subtract(invitedPlayerNames)
+            invitePlayers.first.filter { entry -> entry.value.status.code == Status.Code.OK }.map {
+                it.value.cloudPlayer?.sendInvitationText(creatorName, creatorName)
 
-        creatorPlayer.sendMessage(
+                it.key
+            }
+        val notInvitedPlayerNames =
+            invitePlayers.first.map { it.key }.subtract(invitedPlayerNames.toSet())
+
+        if(invitedPlayerNames.isNotEmpty()) creatorPlayer.sendMessage(
             text(
                 "${Glyphs.BALLOONS} You ${Color.GREEN}successfully</color> invited ${
                     Color.BLUE + invitedPlayerNames.joinToString(
                         "<white>,</white>"
                     )
-                } to your party."
+                }</color> to your party."
             )
         )
+
         if (notInvitedPlayerNames.isNotEmpty()) creatorPlayer.sendMessage(
             text(
-                "${Glyphs.SPACE + Color.RED} The following players haven't been invited: ${
+                "${Glyphs.BALLOONS + Color.RED} The following players haven't been invited: ${
                     notInvitedPlayerNames.joinToString(
-                        ", "
+                        "<white>,</white>"
                     )
                 }"
             )
@@ -200,11 +205,16 @@ class PartyInteractionService(
                         invitePlayers.second.membersList.firstOrNull { partyMember -> partyMember.role == PartyRole.OWNER }?.name
                             ?: executorName
                     invite.cloudPlayer?.sendInvitationText(executorName, partyOwnerName)
-                    executorPlayer.sendMessage(text("${Glyphs.BALLOONS} You ${Color.GREEN}successfully</color> invited ${Color.BLUE + memberName} to your party."))
+                    executorPlayer.sendMessage(text("${Glyphs.BALLOONS} You ${Color.GREEN}successfully</color> invited ${Color.BLUE + memberName}</color> to your party."))
                 }
 
                 Status.Code.NOT_FOUND -> {
                     executorPlayer.sendMessage(text("${Glyphs.BALLOONS + Color.RED} $memberName is offline."))
+                    throw invite.status.asRuntimeException()
+                }
+
+                Status.Code.FAILED_PRECONDITION -> {
+                    executorPlayer.sendMessage(text("${Glyphs.BALLOONS + Color.RED} $memberName is already part of your party."))
                     throw invite.status.asRuntimeException()
                 }
 
@@ -227,7 +237,7 @@ class PartyInteractionService(
         val executorPlayer = executorId.fetchPlayer() ?: handleUserFetchingFailed(request.executorId)
         val executorName = executorPlayer.getName()
 
-        val party = playerRepository.getParty(executorName) ?: run {
+        var party = playerRepository.getParty(executorName) ?: run {
             executorPlayer.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You aren't in a party."))
             throw Status.NOT_FOUND.withDescription("Failed to kick member: User $executorName isn't part of any party")
                 .asRuntimeException()
@@ -269,7 +279,7 @@ class PartyInteractionService(
         }
 
         try {
-            val party = playerRepository.removeParty(memberName).first
+            party = playerRepository.removeParty(memberName).first
             party.announce(text("${Glyphs.BALLOONS} $memberName ${Color.RED}left</color> the party."))
 
             val memberPlayer = memberName.fetchPlayer()
@@ -289,7 +299,8 @@ class PartyInteractionService(
         val executorName = executorPlayer.getName()
 
         try {
-            val (party, member) = playerRepository.removeParty(executorName)
+            var (party, member) = playerRepository.removeParty(executorName)
+            executorPlayer.sendMessage(text("${Glyphs.BALLOONS} You ${Color.RED}left</color> the party."))
             party.announce(text("${Glyphs.BALLOONS} $executorName ${Color.RED}left</color> the party."))
 
             if (member.role == PartyRole.OWNER) {
@@ -309,14 +320,9 @@ class PartyInteractionService(
                     return leavePartyResponse { }
                 }
 
-                playerRepository.updateRole(transferOwnershipMember.name, PartyRole.OWNER)
+                party = playerRepository.updateRole(transferOwnershipMember.name, PartyRole.OWNER).second
                 transferOwnershipMember.name.fetchPlayer()
                     ?.sendMessage(text("${Glyphs.BALLOONS} The party owner ${Color.RED}left</color>. You were automatically promoted to party owner due to being in the party the longest."))
-
-                partyRepository.updateParty(
-                    party.copy {
-                        this.ownerId = transferOwnershipMember.uuid
-                    })
             }
         } catch (exception: StatusException) {
             if (exception.status.code == Status.Code.NOT_FOUND) executorPlayer.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You aren't in a party."))
@@ -375,8 +381,6 @@ class PartyInteractionService(
             }
 
             playerRepository.updateRole(executorName, PartyRole.MOD)
-
-            partyRepository.updateParty(party.copy { this.ownerId = targetPartyMember.uuid })
             promoteConfirmation.remove(executorPlayer.getUniqueId())
         }
 
@@ -433,7 +437,7 @@ class PartyInteractionService(
                 .log(logger).asRuntimeException()
         }
 
-        if (targetPartyMember.roleValue > executorPartyMember.roleValue) {
+        if (targetPartyMember.roleValue >= executorPartyMember.roleValue) {
             executorPlayer.sendMessage(text("${Glyphs.BALLOONS + Color.RED} $memberName has a higher or equal role than you, therefore you can't demote them."))
 
             throw Status.PERMISSION_DENIED.withDescription("Failed to demote member: User $executorName has a weaker role than $memberName")
