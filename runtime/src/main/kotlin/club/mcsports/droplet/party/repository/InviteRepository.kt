@@ -30,9 +30,11 @@ class InviteRepository(
      *
      * @return a map of player names with their invite result paired with the party
      *
-     * @throws Status.NOT_FOUND if the player isn't part of any party
+     * @throws Status.NOT_FOUND if the invitor isn't part of any party
      * @throws Status.PERMISSION_DENIED if the invitor doesn't have enough permissions to invite other players
      * @throws Status.UNAVAILABLE if the party has invites toggled off
+     * @throws Status.ALREADY_EXISTS if the player already has a pending invite for the party
+     * @throws Status.FAILED_PRECONDITION if the player is already part of the party
      */
     suspend fun invitePlayers(names: Set<String>, invitorName: String): Pair<Map<String, InviteResult>, Party> {
         val party = playerRepository.getParty(invitorName)
@@ -54,6 +56,13 @@ class InviteRepository(
         val lowercaseInvites = party.invitesList.map { it.invitedName }
 
         val inviteResults = lowercaseNames.associate { invitedName ->
+            if(party.membersList.any { member -> member.name.equals(invitedName, true)}) {
+                val status = Status.FAILED_PRECONDITION.withDescription("Failed to invite $invitedName: User is already part of party ${party.id}")
+                    .log(logger)
+
+                return@associate invitedName to InviteResult(status, null, null)
+            }
+
             if (invitedName.equals(invitorName, true)) {
                 val status =
                     Status.INVALID_ARGUMENT.withDescription("Failed to invite $invitedName: User cannot invite themselves").log(logger)
