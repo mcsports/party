@@ -15,6 +15,7 @@ import com.mcsports.party.v1.*
 import io.grpc.Status
 import io.grpc.StatusException
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import org.apache.logging.log4j.LogManager
@@ -140,12 +141,14 @@ class PartyInteractionService(
 
         val message = gsonSerializer.deserialize(request.message.json).color(NamedTextColor.GRAY)
         val memberBadgeColor = when (executorMember.role) {
-            PartyRole.OWNER -> NamedTextColor.DARK_GRAY
+            PartyRole.OWNER -> NamedTextColor.DARK_RED
             PartyRole.MOD -> NamedTextColor.RED
             else -> NamedTextColor.GRAY
         }
 
-        val memberBadge = Component.text(executorName).color(memberBadgeColor)
+        val memberBadge = Component.text(executorName).color(memberBadgeColor).hoverEvent(
+            HoverEvent.hoverEvent(HoverEvent.Action.SHOW_TEXT, text("Party-${executorMember.role.name.lowercase().replaceFirstChar { it.uppercase() }}"))
+        )
         party.announce(
             text("<hover:show_text:'Party-Chat'>${Glyphs.BALLOONS}</hover> ").append(memberBadge).append(
                 Component.text(" » ").color(
