@@ -142,8 +142,6 @@ class InviteRepository(
             partyRepository.updateParty(updatedParty)
             player.invites.remove(invite.invitorName)
         }
-
-        return invite
     }
 
 }
