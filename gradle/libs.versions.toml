@@ -1,11 +1,11 @@
 [versions]
 shadow = "8.3.3"
-kotlin = "2.0.20"
+kotlin = "2.3.10"
 kotlin-coroutines = "1.9.0"
 grpc = "1.61.0"
 grpc-kotlin = "1.4.1"
 protobuf = "3.25.2"
-mcsports-proto = "v2025.07.02.175544"
+mcsports-proto = "v206.02.21.152819"
 log4j = "2.20.0"
 configurate = "4.2.0"
 controller-api = "0.0.30-SNAPSHOT.f7cbeda"
@@ -15,6 +15,7 @@ plugin-api = "0.0.1-dev.1738295670168-f53f4db"
 clikt = "5.0.1"
 velocity = "3.4.0-SNAPSHOT"
 minimessage = "4.20.0"
+paperweight = "2.0.0-beta.12"
 
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
@@ -64,5 +65,6 @@ configurate = ["configurate", "configurate-kotlin"]
 simplecloud = ["controller-api", "droplet-api", "player-api", "plugin-api"]
 
 [plugins]
+paperweight-userdev = { id = "io.papermc.paperweight.userdev", version.ref = "paperweight" }
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
