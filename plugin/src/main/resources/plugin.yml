@@ -1,0 +1,8 @@
+name: party-paper
+version: 0.1
+author: ishde
+main: club.mcsports.droplet.party.plugin.PartyPaperPlugin
+depend: ["simplecloud-api"]
+
+commands:
+  party:

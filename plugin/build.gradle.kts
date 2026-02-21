@@ -1,11 +1,10 @@
 plugins {
-    kotlin("kapt")
+    alias(libs.plugins.paperweight.userdev)
 }
 
 dependencies {
+    paperweight.paperDevBundle("1.21.4-R0.1-SNAPSHOT")
     implementation(project(":api"))
-    compileOnly(libs.velocity)
-    kapt(libs.velocity)
 }
 
 tasks.shadowJar {

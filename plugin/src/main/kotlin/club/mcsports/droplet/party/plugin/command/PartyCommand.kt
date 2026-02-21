@@ -6,20 +6,22 @@ import club.mcsports.droplet.party.shared.Color
 import club.mcsports.droplet.party.shared.Glyphs
 import com.mcsports.party.v1.PartyRole
 import com.mcsports.party.v1.partySettings
-import com.velocitypowered.api.command.SimpleCommand
-import com.velocitypowered.api.proxy.Player
 import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.kyori.adventure.text.Component
-import org.slf4j.Logger
+import org.bukkit.command.Command
+import org.bukkit.command.CommandExecutor
+import org.bukkit.command.CommandSender
+import org.bukkit.entity.Player
+import java.util.logging.Logger
 
 class PartyCommand(
     private val api: PartyApi.Coroutine,
     private val logger: Logger
-) : SimpleCommand {
+) : CommandExecutor {
 
     private val help = mutableMapOf(
         "create" to "Creates a new party",
@@ -35,26 +37,23 @@ class PartyCommand(
         "chat <message>" to "Sends a message to your party chat"
     )
 
-    override fun execute(invocation: SimpleCommand.Invocation) {
+    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
 
-        if (invocation.source() !is Player) {
-            invocation.source().sendMessage(text("${Color.RED}You have to be a player to do this."))
-            return
+        if (sender !is Player) {
+            sender.sendMessage(text("${Color.RED}You have to be a player to do this."))
+            return true
         }
 
-        val args = invocation.arguments()
-        val player = invocation.source() as Player
-        val alias = invocation.alias()
-
+        val player = sender
         if(args.size >= 2 && args[0].lowercase() == "chat") {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     api.getInteraction().partyChat(player.uniqueId, text(args.drop(1).joinToString(" ")))
                 } catch (exception: StatusException) {
-                    logger.warn(exception.status.description)
+                    logger.warning(exception.status.description)
                 }
             }
-            return
+            return true
         }
 
         if (args.size == 1) {
@@ -68,7 +67,7 @@ class PartyCommand(
                                 this.allowChatting = true
                             }, emptyList())
                         } catch (exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
                         }
                     }
 
@@ -87,7 +86,7 @@ class PartyCommand(
                             player.sendMessage(text("${Glyphs.SPACE} <gray>Invites: <color:#38bdf8>${if (settings.allowInvites) "enabled" else "disabled"}"))
                             player.sendMessage(text("${Glyphs.SPACE} <gray>Chat: <color:#38bdf8>${if (settings.allowChatting) "enabled" else "disabled"}"))
                         } catch (exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
 
                             if (exception.status.code == Status.Code.NOT_FOUND) player.sendMessage(text("${Glyphs.BALLOONS + Color.RED} You are not part of any party."))
                             else player.sendMessage(text("${Glyphs.BALLOONS + Color.RED} Failed to fetch your party member data. Please call an administrator about this."))
@@ -99,7 +98,7 @@ class PartyCommand(
                         try {
                             api.getInteraction().deleteParty(player.uniqueId)
                         } catch(exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
                         }
                     }
 
@@ -107,11 +106,11 @@ class PartyCommand(
                         api.getInteraction().memberLeaveParty(player.uniqueId)
                     }
 
-                    else -> player.sendHelp(alias)
+                    else -> player.sendHelp(label)
                 }
             }
 
-            return
+            return true
         }
 
         if (args.size == 2) {
@@ -123,7 +122,7 @@ class PartyCommand(
                         try {
                             api.getInteraction().inviteMember(targetName, player.uniqueId)
                         } catch (exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
                         }
                     }
 
@@ -131,7 +130,7 @@ class PartyCommand(
                         try {
                             api.getInteraction().promoteMember(targetName, player.uniqueId)
                         } catch (exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
                         }
                     }
 
@@ -139,7 +138,7 @@ class PartyCommand(
                         try {
                             api.getInteraction().demoteMember(targetName, player.uniqueId)
                         } catch (exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
                         }
                     }
 
@@ -147,7 +146,7 @@ class PartyCommand(
                         try {
                             api.getInteraction().kickMember(targetName, player.uniqueId)
                         } catch (exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
                         }
                     }
 
@@ -155,7 +154,7 @@ class PartyCommand(
                         try {
                             api.getInteraction().acceptPartyInvite(targetName, player.uniqueId)
                         } catch (exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
                         }
                     }
 
@@ -163,7 +162,7 @@ class PartyCommand(
                         try {
                             api.getInteraction().denyPartyInvite(targetName, player.uniqueId)
                         } catch (exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
                         }
                     }
 
@@ -171,15 +170,15 @@ class PartyCommand(
                         try {
                             api.getInteraction().memberJoinParty(targetName, player.uniqueId)
                         } catch (exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
                         }
                     }
 
-                    else -> player.sendHelp(alias)
+                    else -> player.sendHelp(label)
                 }
             }
 
-            return
+            return true
         }
 
         if(args.size == 3) {
@@ -204,18 +203,18 @@ class PartyCommand(
 
                             api.getInteraction().modifyPartySettings(player.uniqueId, settings.build())
                         } catch (exception: StatusException) {
-                            logger.warn(exception.status.description)
+                            logger.warning(exception.status.description)
                         }
                     }
                 }
 
-                else -> player.sendHelp(alias)
+                else -> player.sendHelp(label)
             }
-            return
+            return true
         }
 
-        player.sendHelp(alias)
-
+        player.sendHelp(label)
+        return true
     }
 
     private fun Player.sendHelp(alias: String) {
