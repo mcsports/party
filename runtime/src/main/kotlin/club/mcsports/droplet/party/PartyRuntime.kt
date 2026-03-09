@@ -5,7 +5,6 @@ import app.simplecloud.droplet.api.auth.AuthCallCredentials
 import app.simplecloud.droplet.api.auth.AuthSecretInterceptor
 import app.simplecloud.droplet.api.droplet.Droplet
 import app.simplecloud.droplet.player.api.PlayerApi
-import app.simplecloud.droplet.player.api.PlayerApiSingleton
 import build.buf.gen.simplecloud.controller.v1.ControllerDropletServiceGrpcKt
 import club.mcsports.droplet.party.controller.Attacher
 import club.mcsports.droplet.party.launcher.PartyStartCommand
